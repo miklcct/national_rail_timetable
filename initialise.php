@@ -111,7 +111,7 @@ if (PHP_SAPI === 'cli') {
 }
 $whoops->register();
 
-set_time_limit(120);
+set_time_limit(300);
 ini_set('memory_limit', '4G');
 date_default_timezone_set('Europe/London');
 umask(0o002);
