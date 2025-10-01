@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace App\DomainModels\Points;
 
-use App\DomainModels\Time;
 use App\Enums\Activity;
+use App\ValueObjects\Time;
 
 trait DepartureTrait {
     public readonly Time $workingDeparture;

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\DomainModels\Points;
 
-use App\DomainModels\Time;
+use App\ValueObjects\Time;
 
 interface HasArrival {
     public function getWorkingArrival() : Time;

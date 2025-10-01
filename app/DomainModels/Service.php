@@ -46,29 +46,6 @@ readonly class Service {
             },
         ])->orderBy('stp_indicator')->first();
 
-        return $schedule === null ? null : self::fromDatabaseModel($schedule);
-    }
-
-    public static function fromDatabaseModel(BaseSchedule $schedule) : Service {
-        return new self(
-            $schedule->train_uid,
-            new Period(
-                Date::fromDateTimeInterface($schedule->runs_from),
-                Date::fromDateTimeInterface($schedule->runs_to),
-                [
-                    $schedule->sunday,
-                    $schedule->monday,
-                    $schedule->tuesday,
-                    $schedule->wednesday,
-                    $schedule->thursday,
-                    $schedule->friday,
-                    $schedule->saturday,
-                ]
-            ),
-            $schedule->getMode(),
-            $schedule->atoc_code,
-            [],
-            $schedule->stp_indicator
-        );
+        return $schedule === null ? null : $schedule->toDomainModel();
     }
 }

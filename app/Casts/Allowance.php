@@ -17,6 +17,9 @@ class Allowance implements CastsAttributes
      * @param  array<string, mixed>  $attributes
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): Time {
+        if ($value === null) {
+            return new Time(0, 0);
+        }
         if (!is_string($value)) {
             throw new InvalidArgumentException('The allowance value must be a string.');
         }
@@ -30,24 +33,24 @@ class Allowance implements CastsAttributes
      * @param  array<string, mixed>  $attributes
      */
     public function set(Model $model, string $key, mixed $value, array $attributes): ?string {
-        if (!$model instanceof Time) {
+        if (!$value instanceof Time) {
             throw new InvalidArgumentException('The allowance value must be a Time.');
         }
 
-        if ($model->secondsFromOrigin === 0) {
+        if ($value->secondsFromOrigin === 0) {
             return null;
         }
 
-        if ($model->negative) {
+        if ($value->negative) {
             throw new RangeException('The allowance value must not be negative.');
         }
 
-        $minutes = $model->hours * Time::MINUTES_PER_HOUR + $model->minutes;
+        $minutes = $value->hours * Time::MINUTES_PER_HOUR + $value->minutes;
         if ($minutes > 99) {
             throw new RangeException('The allowance value must not be more than 99 minutes.');
         }
 
-        if (!($model->seconds === 0 || $minutes <= 9 && $model->seconds === 30)) {
+        if (!($value->seconds === 0 || $minutes <= 9 && $value->seconds === 30)) {
             throw new RangeException('The allowance value must be multiples of a minute for 10 minutes or more, or multiples of half-minutes for less than 10 minutes.');
         }
 

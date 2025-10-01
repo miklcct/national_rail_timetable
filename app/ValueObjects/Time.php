@@ -44,7 +44,7 @@ final readonly class Time implements Castable {
             return new self(0, 0, self::fromString(substr($time, 1))->secondsFromOrigin, true);
         }
         $components = explode(':', $time);
-        return new self(...$components);
+        return new self(...array_map(fn ($value) => (int)$value, $components));
     }
 
     public function moduloDay(): self {
@@ -59,7 +59,7 @@ final readonly class Time implements Castable {
         return new static(
             hours: (int)$datetime->format('G')
             , minutes: (int)$datetime->format('i')
-            , halfMinute: (int)$datetime->format('s') >= 30
+            , seconds: (int)$datetime->format('s')
         );
     }
 
@@ -94,11 +94,14 @@ final readonly class Time implements Castable {
 
     public static function castUsing(array $arguments) : CastsAttributes {
         return new class implements CastsAttributes {
-            public function get(Model $model, string $key, mixed $value, array $attributes) : Time {
+            public function get(Model $model, string $key, mixed $value, array $attributes) : ?Time {
+                if ($value === null) {
+                    return null;
+                }
                 return Time::fromString($value);
             }
-            public function set(Model $model, string $key, mixed $value, array $attributes) : string {
-                return $model->__toString();
+            public function set(Model $model, string $key, mixed $value, array $attributes) : ?string {
+                return $value?->__toString();
             }
         };
     }

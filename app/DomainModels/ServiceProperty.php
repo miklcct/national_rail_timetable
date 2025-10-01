@@ -12,17 +12,18 @@ use App\Enums\TrainClass;
 readonly class ServiceProperty {
     public function __construct(
         public TrainCategory $trainCategory,
-        public string $identity,
-        public string $headcode,
-        public string $portionId,
-        public Power $power,
-        public string $timingLoad,
+        public ?string $identity,
+        public ?string $headcode,
+        public ?string $portionId,
+        public ?Power $power,
+        public ?string $timingLoad,
         public ?int $speedMph,
         public bool $doo,
-        public TrainClass $seatingClass,
-        public TrainClass $sleeperClass,
-        public Reservation $reservation,
-        public Catering $catering,
+        public ?TrainClass $seatingClass,
+        public ?TrainClass $sleeperClass,
+        public ?Reservation $reservation,
+        /** @var Catering[] */
+        public array $catering,
         public ?string $rsid
     ) {
     }

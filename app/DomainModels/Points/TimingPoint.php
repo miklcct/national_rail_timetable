@@ -3,16 +3,16 @@ declare(strict_types=1);
 
 namespace App\DomainModels\Points;
 
-use App\DomainModels\Time;
 use App\Enums\Activity;
 use App\Enums\TimeType;
 use App\Models\Tiploc;
+use App\ValueObjects\Time;
 
 readonly abstract class TimingPoint {
     public function __construct(
         public Tiploc $location,
-        public string $locationSuffix,
-        public string $platform,
+        public ?int $locationSuffix,
+        public ?string $platform,
         /** @var Activity[] */
         public array $activities
     ) {
@@ -38,5 +38,4 @@ readonly abstract class TimingPoint {
             // this filter out non-stations on rail services, but keeps bus stations without CRS
             && ($location->tiploc_code !== null || $location->stanox === null);
     }
-
 }

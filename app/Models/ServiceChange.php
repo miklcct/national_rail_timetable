@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ServiceChange extends Model
-{
+class ServiceChange extends Model {
+    use HasServiceProperty;
+
     /**
      * The table associated with the model.
      *
@@ -30,7 +30,7 @@ class ServiceChange extends Model
     protected $casts = BaseSchedule::SERVICE_PROPERTY_CASTS;
 
     public function stopTime() : BelongsTo {
-        return $this->belongsTo(BaseStopTime::class, 'stop');
+        return $this->belongsTo(StopTime::class, 'stop');
     }
 
     public function tiploc() : BelongsTo {
