@@ -52,6 +52,7 @@ abstract class BaseStopTime extends Model {
         if (in_array(Activity::TRAIN_BEGINS, $this->activity)) {
             return new OriginPoint(
                 $this->tiploc,
+                $this->physicalStation,
                 $this->suffix,
                 $this->platform,
                 $this->line,
@@ -66,6 +67,7 @@ abstract class BaseStopTime extends Model {
         } elseif (in_array(Activity::TRAIN_FINISHES, $this->activity)) {
             return new DestinationPoint(
                 $this->tiploc,
+                $this->physicalStation,
                 $this->suffix,
                 $this->platform,
                 $this->path,
@@ -76,6 +78,7 @@ abstract class BaseStopTime extends Model {
         } elseif ($this->scheduled_pass_time !== null) {
             return new PassingPoint(
                 $this->tiploc,
+                $this->physicalStation,
                 $this->suffix,
                 $this->platform,
                 $this->path,
@@ -90,6 +93,7 @@ abstract class BaseStopTime extends Model {
         } else {
             return new CallingPoint(
                 $this->tiploc,
+                $this->physicalStation,
                 $this->suffix,
                 $this->platform,
                 $this->path,

@@ -9,4 +9,13 @@ enum Reservation : string {
     case AVAILABLE = 'S';
     case RECOMMENDED = 'R';
     case COMPULSORY = 'A';
+    public function getDescription() {
+        return match($this) {
+            self::NONE => 'None',
+            self::BICYCLE => 'Bicycle',
+            self::AVAILABLE => 'Available',
+            self::RECOMMENDED => 'Recommended',
+            self::COMPULSORY => 'Compulsory',
+        };
+    }
 }

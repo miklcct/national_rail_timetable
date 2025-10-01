@@ -15,7 +15,7 @@ trait HasServiceProperty {
             $this->power_type,
             $this->timing_load,
             $this->speed,
-            str_contains($this->operating_chars, 'D'),
+            str_contains($this->operating_chars ?? '', 'D'),
             $this->train_class,
             $this->sleepers,
             $this->reservations,

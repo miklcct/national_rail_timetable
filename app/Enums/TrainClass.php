@@ -15,4 +15,12 @@ enum TrainClass : string {
     public function hasStandardClass() : bool {
         return $this === self::BOTH || $this === self::STANDARD;
     }
+
+    public function getDescription() : string {
+        return match($this) {
+            self::BOTH => 'First & Standard',
+            self::FIRST => 'First only',
+            self::STANDARD => 'Standard only',
+        };
+    }
 }

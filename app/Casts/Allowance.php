@@ -24,7 +24,7 @@ class Allowance implements CastsAttributes
             throw new InvalidArgumentException('The allowance value must be a string.');
         }
 
-        return $value[1] === 'H' ? new Time(0, (int)$value[0], 30) : new Time(0, (int)$value);
+        return strlen($value) === 2 && $value[1] === 'H' ? new Time(0, (int)$value[0], 30) : new Time(0, (int)$value);
     }
 
     /**

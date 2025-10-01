@@ -20,4 +20,12 @@ readonly class Period {
             && $date->compare($this->to) <= 0
             && $this->weekdays[$date->getWeekday()];
     }
+
+    public function getWeekdayString() : string {
+        $days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+        return implode(
+            '',
+            array_map(fn($i) => $days[$i], array_keys(array_filter($this->weekdays, fn($v) => $v === true)))
+        );
+    }
 }

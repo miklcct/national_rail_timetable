@@ -28,7 +28,7 @@ abstract class BaseSchedule extends Model {
             'speed' => 'int',
             'train_class' => TrainClass::class,
             'sleepers' => TrainClass::class,
-            'reservation' => Reservation::class,
+            'reservations' => Reservation::class,
             'catering_code' => Caterings::class,
         ];
 
@@ -99,5 +99,4 @@ abstract class BaseSchedule extends Model {
             $this->stp_indicator
         );
     }
-
 }

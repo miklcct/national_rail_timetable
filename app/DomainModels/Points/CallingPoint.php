@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\DomainModels\Points;
 
 use App\DomainModels\ServiceProperty;
+use App\Models\PhysicalStation;
 use App\Models\Tiploc;
 use App\ValueObjects\Time;
 
@@ -12,7 +13,8 @@ readonly class CallingPoint extends IntermediatePoint implements HasDeparture, H
     use DepartureTrait;
 
     public function __construct(
-        Tiploc $location,
+        ?Tiploc $location,
+        ?PhysicalStation $station,
         ?int $locationSuffix,
         ?string $platform,
         ?string $path,
@@ -25,7 +27,7 @@ readonly class CallingPoint extends IntermediatePoint implements HasDeparture, H
         Time $pathingAllowance,
         Time $performanceAllowance,
         array $activities,
-        ?ServiceProperty $serviceProperty
+        ServiceProperty $serviceProperty
     ) {
         $this->publicDeparture = $publicDeparture;
         $this->workingDeparture = $workingDeparture;
@@ -33,6 +35,7 @@ readonly class CallingPoint extends IntermediatePoint implements HasDeparture, H
         $this->workingArrival = $workingArrival;
         parent::__construct(
             $location,
+            $station,
             $locationSuffix,
             $platform,
             $path,

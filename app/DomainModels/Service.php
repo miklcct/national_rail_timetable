@@ -18,7 +18,7 @@ readonly class Service {
         public string $uid,
         public Period $period,
         public Mode $mode,
-        public string $toc,
+        public ?string $toc,
         /** @var TimingPoint[] */
         public array $timingPoints,
         public ShortTermPlanning $shortTermPlanning
@@ -27,7 +27,8 @@ readonly class Service {
 
     public static function loadFromDatabase(string $uid, Date $date, bool $excludeStp = false) : ?Service {
         $weekday_columns = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        $builder = str_starts_with($uid, 'Z')
+        $is_z_schedule = str_starts_with($uid, 'Z');
+        $builder = $is_z_schedule
             ? ZSchedule::where('train_uid', $uid)
             : Schedule::where(
                 'train_uid',
@@ -41,8 +42,11 @@ readonly class Service {
             $builder->where('stp_indicator', ShortTermPlanning::PERMANENT->value);
         }
         $schedule = $builder->with([
-            'stopTimes' => function (Relation $relation) {
-                $relation->with('serviceChange');
+            'stopTimes' => function (Relation $relation) use ($is_z_schedule) {
+                $relation->with('physicalStation');
+                if (!$is_z_schedule) {
+                    $relation->with('tiploc')->with('serviceChange');
+                }
             },
         ])->orderBy('stp_indicator')->first();
 

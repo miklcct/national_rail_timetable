@@ -24,7 +24,8 @@ class Schedule extends BaseSchedule {
                 DB::raw('(select schedule, atoc_code, retail_train_id from schedule_extra) as schedule_extra'),
                 'schedule.id',
                 '=',
-                'schedule_extra.schedule'
+                'schedule_extra.schedule',
+                'left'
             );
         });
     }

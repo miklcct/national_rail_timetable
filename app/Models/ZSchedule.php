@@ -21,16 +21,17 @@ class ZSchedule extends BaseSchedule {
     protected static function booted() : void {
         static::addGlobalScope('join_extra', static function (Builder $builder) {
             $builder->join(
-                DB::raw('(select schedule, atoc_code from z_schedule_extra) as z)schedule_extra'),
+                DB::raw('(select schedule, atoc_code from z_schedule_extra) as z_schedule_extra'),
                 'z_schedule.id',
                 '=',
-                'z_schedule_extra.schedule'
+                'z_schedule_extra.schedule',
+                'left'
             );
         });
     }
 
     public function stopTimes() : HasMany {
-        return $this->hasMany(ZStopTime::class, 'schedule')
+        return $this->hasMany(ZStopTime::class, 'z_schedule')
             ->orderBy('id');
     }
 }

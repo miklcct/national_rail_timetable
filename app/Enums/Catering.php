@@ -11,4 +11,16 @@ enum Catering : string {
     case WHEELCHAIR_ONLY = 'P';
     case RESTAURANT = 'R';
     case TROLLEY = 'T';
+
+    public function getDescription() : string {
+        return match($this) {
+            self::BUFFET => 'Buffet',
+            self::FIRST_CLASS_RESTAURANT => 'First Class Restaurant',
+            self::HOT_FOOD => 'Hot Food',
+            self::FIRST_CLASS_MEAL => 'First Class Meal',
+            self::WHEELCHAIR_ONLY => 'Wheelchair Only',
+            self::RESTAURANT => 'Restaurant',
+            self::TROLLEY => 'Trolley',
+        };
+    }
 }

@@ -16,7 +16,7 @@ class ZStopTime extends BaseStopTime {
     protected $table = 'z_stop_time';
 
     public function scheduleModel() : BelongsTo {
-        return $this->belongsTo(ZSchedule::class, 'schedule');
+        return $this->belongsTo(ZSchedule::class, 'z_schedule');
     }
 
     public function physicalStation() : BelongsTo {

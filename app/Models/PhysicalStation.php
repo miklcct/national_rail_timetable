@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
-class PhysicalStation extends Model
+class PhysicalStation extends Model implements Location
 {
     /**
      * Value for cate_interchange_status to denote that this entry represents
@@ -58,5 +58,13 @@ class PhysicalStation extends Model
             }
         }
         return $this->minimum_change_time;
+    }
+
+    public function getName() : string {
+        return $this->station_name;
+    }
+
+    public function getCrsCode() : ?string {
+        return $this->crs_code;
     }
 }

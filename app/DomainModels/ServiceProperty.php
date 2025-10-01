@@ -11,7 +11,7 @@ use App\Enums\TrainClass;
 
 readonly class ServiceProperty {
     public function __construct(
-        public TrainCategory $trainCategory,
+        public ?TrainCategory $trainCategory,
         public ?string $identity,
         public ?string $headcode,
         public ?string $portionId,

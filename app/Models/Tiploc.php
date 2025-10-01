@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class Tiploc extends Model
+class Tiploc extends Model implements Location
 {
     /**
      * The table associated with the model.
@@ -33,5 +33,13 @@ class Tiploc extends Model
 
     public function serviceChanges() : HasMany {
         return $this->hasMany(ServiceChange::class, 'location', 'tiploc_code');
+    }
+
+    public function getName() : ?string {
+        return $this->tps_description;
+    }
+
+    public function getCrsCode() : ?string {
+        return $this->crs_code;
     }
 }
