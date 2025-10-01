@@ -6,12 +6,13 @@ namespace App\DomainModels\Points;
 use App\DomainModels\Locations\Location;
 use App\DomainModels\ServiceProperty;
 use App\DomainModels\Time;
+use App\Models\Tiploc;
 
 readonly class OriginPoint extends TimingPoint implements HasDeparture {
     use DepartureTrait;
 
     public function __construct(
-        Location $location,
+        Tiploc $location,
         string $locationSuffix,
         string $platform,
         public string $line,

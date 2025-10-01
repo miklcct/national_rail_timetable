@@ -4,11 +4,13 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Casts\Caterings;
+use App\Enums\Mode;
 use App\Enums\Power;
 use App\Enums\Reservation;
 use App\Enums\ShortTermPlanning;
 use App\Enums\TrainCategory;
 use App\Enums\TrainClass;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -51,4 +53,12 @@ abstract class BaseSchedule extends Model
     ] + self::SERVICE_PROPERTY_CASTS;
 
     public abstract function stopTimes(): HasMany;
+
+    public function getMode() : Mode {
+        return match($this->train_status) {
+            'S', '4' => Mode::SHIP,
+            'B', '5' => Mode::BUS,
+            default => Mode::TRAIN,
+        };
+    }
 }

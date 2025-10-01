@@ -36,10 +36,7 @@ readonly abstract class TimingPoint {
                 || $this instanceof HasArrival && $this->getPublicArrival() !== null
             )
             // this filter out non-stations on rail services, but keeps bus stations without CRS
-            && (
-                $location instanceof LocationWithCrs
-                || $location instanceof TiplocLocation && $location->stanox === null
-            );
+            && ($location->tiploc_code !== null || $location->stanox === null);
     }
 
 }

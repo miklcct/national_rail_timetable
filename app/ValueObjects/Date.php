@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\DomainModels;
+namespace App\ValueObjects;
 
 use DateInterval;
 use DateTimeImmutable;
@@ -49,21 +49,17 @@ readonly class Date {
         return sprintf("%04d-%02d-%02d", $this->year, $this->month, $this->day);
     }
 
-    public function jsonSerialize() : string {
-        return $this->__toString();
-    }
-
     public function getWeekday() : int {
         return (int)$this->toDateTimeImmutable()->format('w');
     }
 
-    public function toDateTimeImmutable(Time $time = null, ?DateTimeZone $timezone = null) : DateTimeImmutable {
+    public function toDateTimeImmutable(?Time $time = null, ?DateTimeZone $timezone = null) : DateTimeImmutable {
         if ($timezone === null) {
             $timezone = new DateTimeZone('Europe/London');
         }
         return (new DateTimeImmutable('now', $timezone))
             ->setDate($this->year, $this->month, $this->day)
-            ->setTime($time?->hours ?? 0, $time?->minutes ?? 0, $time?->halfMinute ? 30 : 0);
+            ->setTime($time?->hours ?? 0, $time?->minutes ?? 0, $time?->seconds ?? 0);
     }
 
     public static function fromDateTimeInterface(DateTimeInterface $datetime) : static {

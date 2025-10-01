@@ -3,14 +3,14 @@ declare(strict_types=1);
 
 namespace App\DomainModels\Points;
 
-use App\DomainModels\Locations\Location;
 use App\DomainModels\ServiceProperty;
 use App\DomainModels\Time;
+use App\Models\Tiploc;
 
 readonly class PassingPoint extends IntermediatePoint {
 
     public function __construct(
-        Location $location
+        Tiploc $location
         , string $locationSuffix
         , string $platform
         , string $path

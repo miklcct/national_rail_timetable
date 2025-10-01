@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\DomainModels;
 
+use App\ValueObjects\Date;
+
 readonly class Period {
 
     public function __construct(

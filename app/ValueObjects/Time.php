@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\ValueObjects;
 
+use DateTimeInterface;
 use Illuminate\Contracts\Database\Eloquent\Castable;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,10 @@ final readonly class Time implements Castable {
     public const MINUTES_PER_HOUR = 60;
     public const HOURS_PER_DAY = 24;
     public const SECONDS_PER_DAY = self::SECONDS_PER_MINUTE * self::MINUTES_PER_HOUR * self::HOURS_PER_DAY;
+
+    public const TWENTY_FOUR_HOUR_CLOCK = 0;
+    public const THIRTY_HOUR_CLOCK = 1;
+    public const SHOW_PLUS_DAYS = 2;
 
     public int $secondsFromOrigin;
     public bool $negative;
@@ -42,16 +47,6 @@ final readonly class Time implements Castable {
         return new self(...$components);
     }
 
-    public function __toString(): string {
-        return sprintf(
-            '%s%02d:%02d:%02d',
-            $this->negative ? '-' : '',
-            $this->hours,
-            $this->minutes,
-            $this->seconds
-        );
-    }
-
     public function moduloDay(): self {
         $seconds = $this->secondsFromOrigin % self::SECONDS_PER_DAY;
         while ($seconds < 0) {
@@ -59,6 +54,43 @@ final readonly class Time implements Castable {
         }
         return new self(0, 0, $seconds);
     }
+
+    public static function fromDateTimeInterface(DateTimeInterface $datetime) : static {
+        return new static(
+            hours: (int)$datetime->format('G')
+            , minutes: (int)$datetime->format('i')
+            , halfMinute: (int)$datetime->format('s') >= 30
+        );
+    }
+
+    public function addDay() : static {
+        return new static(
+            $this->hours + 24
+            , $this->minutes
+            , $this->seconds
+        );
+    }
+
+    public function toString(int $format = self::TWENTY_FOUR_HOUR_CLOCK) : string {
+        return sprintf(
+                "%02d:%02d"
+                ,
+                $format === self::THIRTY_HOUR_CLOCK
+                    ? $this->hours
+                    : $this->hours % 24
+                ,
+                $this->minutes
+            )
+            . ($this->seconds >= 30 ? '½' : '')
+            . ($format === self::SHOW_PLUS_DAYS && $this->hours >= 24
+                ? '+' . intdiv($this->hours, 24)
+                : '');
+    }
+
+    public function __toString() : string {
+        return $this->toString();
+    }
+
 
     public static function castUsing(array $arguments) : CastsAttributes {
         return new class implements CastsAttributes {
