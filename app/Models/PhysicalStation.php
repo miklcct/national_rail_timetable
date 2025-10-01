@@ -46,4 +46,17 @@ class PhysicalStation extends Model
     public function scopePrimary(Builder $query) : void {
         $query->where('cate_interchange_status', '<>', self::INTERCHANGE_STATUS_SECONDARY);
     }
+
+    public function tocInterchanges() : HasMany {
+        return $this->hasMany(TocInterchange::class, 'crs', 'crs_code');
+    }
+
+    public function getConnectionTime(?string $from_toc, ?string $to_toc) : int {
+        foreach ($this->tocInterchanges as $interchange) {
+            if ($interchange->from_toc === $from_toc && $interchange->to_toc === $to_toc) {
+                return $interchange->time;
+            }
+        }
+        return $this->minimum_change_time;
+    }
 }

@@ -12,7 +12,7 @@ class ZSchedule extends BaseSchedule {
      *
      * @var string
      */
-    protected $table = 'schedule';
+    protected $table = 'z_schedule';
 
     /**
      * The "booted" method of the model.
