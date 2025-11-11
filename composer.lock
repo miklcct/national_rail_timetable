@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f0500d67b38ac7cda27e8ee5436f5186",
+    "content-hash": "d5bcd149e8b845f4cc7b480913dcb581",
     "packages": [
         {
             "name": "filp/whoops",
@@ -568,16 +568,16 @@
         },
         {
             "name": "miklcct/rail_open_timetable_data",
-            "version": "1.5.3",
+            "version": "1.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/miklcct/rail_open_timetable_data.git",
-                "reference": "7850b306b56f62cfe1ea373ecf58d7d8516de2eb"
+                "reference": "9d672efa3ccf4c8b5ad1fb265e3ed5dbdcb66dc2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/miklcct/rail_open_timetable_data/zipball/7850b306b56f62cfe1ea373ecf58d7d8516de2eb",
-                "reference": "7850b306b56f62cfe1ea373ecf58d7d8516de2eb",
+                "url": "https://api.github.com/repos/miklcct/rail_open_timetable_data/zipball/9d672efa3ccf4c8b5ad1fb265e3ed5dbdcb66dc2",
+                "reference": "9d672efa3ccf4c8b5ad1fb265e3ed5dbdcb66dc2",
                 "shasum": ""
             },
             "require": {
@@ -608,9 +608,9 @@
             "description": "Library for handling rail open timetable data",
             "support": {
                 "issues": "https://github.com/miklcct/rail_open_timetable_data/issues",
-                "source": "https://github.com/miklcct/rail_open_timetable_data/tree/1.5.3"
+                "source": "https://github.com/miklcct/rail_open_timetable_data/tree/1.6.0"
             },
-            "time": "2024-12-03T23:49:07+00:00"
+            "time": "2025-11-11T15:04:42+00:00"
         },
         {
             "name": "miklcct/thin_php_app",
@@ -3181,5 +3181,5 @@
         "ext-mongodb": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.3.0"
 }

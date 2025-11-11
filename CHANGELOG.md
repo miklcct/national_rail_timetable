@@ -1,3 +1,6 @@
+## [2.7.0] - 2025-11-11
+* Add the ability to filter services by TOC
+
 ## [2.6.0] - 2024-05-09
 * Add STP indicator into board and timetable
 
