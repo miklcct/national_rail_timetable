@@ -32,6 +32,7 @@ class Board extends PhpTemplate {
             , $this->query->filter
             , $this->query->inverseFilter
             , $this->date->addDays($days)
+            , $this->query->toc
             , $this->query->connectingTime
             , $this->query->connectingToc
             , $this->query->permanentOnly

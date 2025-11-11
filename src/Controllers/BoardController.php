@@ -28,6 +28,7 @@ class BoardController extends ScheduleController {
             , $from
             , $to
             , $arrival_mode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE
+            , $query->toc
         );
         $board = $board->filterByDestination(
             array_map(

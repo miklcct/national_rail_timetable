@@ -84,6 +84,7 @@ class ServiceView extends PhpTemplate {
                 , []
                 , []
                 , Date::fromDateTimeInterface($timestamp->sub(new DateInterval($arrival_mode ? 'PT4H30M' : 'P0D')))
+                , null
                 , $timestamp
                 , $this->datedService->service->toc
                 , $this->permanentOnly

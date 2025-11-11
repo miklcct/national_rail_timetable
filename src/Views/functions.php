@@ -131,6 +131,7 @@ function get_arrival_link(string $url, ServiceCall $service_call, BoardQuery $qu
                     new DateInterval($query->arrivalMode ? 'PT4H30M' : 'P0D')
                 )
             )
+            , null
             , $service_call->timestamp
             , $service_call->toc
             , $query->permanentOnly

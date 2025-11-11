@@ -30,6 +30,7 @@ class BoardQuery {
         , public readonly array $filter = []
         , public readonly array $inverseFilter = []
         , public readonly ?Date $date = null
+        , public readonly ?array $toc = null
         , public readonly ?DateTimeImmutable $connectingTime = null
         , public readonly ?string $connectingToc = null
         , public readonly bool $permanentOnly = false
@@ -49,10 +50,11 @@ class BoardQuery {
                 , array_values(array_filter((array)($query['inverse_filter'] ?? [])))
             )
             , empty($query['date']) ? null : Date::fromDateTimeInterface(new \Safe\DateTimeImmutable($query['date']))
+            , isset($query['toc']) ? (array)$query['toc'] : null
             , empty($query['connecting_time']) ? null : new \Safe\DateTimeImmutable($query['connecting_time'])
             , $query['connecting_toc'] ?? '' ?: null
             , !empty($query['permanent_only'])
-            , array_diff_key($query, ['mode', 'station', 'filter', 'inverse_filter', 'date', 'connecting_time', 'connecting_toc', 'permanent_only'])
+            , array_diff_key($query, ['mode', 'station', 'filter', 'inverse_filter', 'date', 'toc', 'connecting_time', 'connecting_toc', 'permanent_only'])
         );
     }
 
@@ -79,6 +81,7 @@ class BoardQuery {
                     , $this->inverseFilter
                 ),
                 'date' => $this->date?->__toString() ?? '',
+                'toc' => $this->toc,
                 'connecting_time' => substr($this->connectingTime?->format('c') ?? '', 0, 16),
                 'connecting_toc' => $this->connectingTime === null ? '' : $this->connectingToc ?? '',
             ] + ($this->permanentOnly ? ['permanent_only' => '1'] : []) + $this->otherQueryArguments

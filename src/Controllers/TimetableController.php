@@ -25,6 +25,7 @@ class TimetableController extends ScheduleController {
             , $date->toDateTimeImmutable()
             , $date->toDateTimeImmutable(new Time(28, 30))
             , $query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE
+            , $query->toc
         );
         $board = $board->filterByDestination(
             array_map(static fn(LocationWithCrs $location) => $location->getCrsCode(), $query->filter)

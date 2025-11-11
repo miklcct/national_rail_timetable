@@ -107,6 +107,7 @@ class ScheduleView extends PhpTemplate {
             , [$this->query->station]
             , $this->query->inverseFilter
             , $this->query->date
+            , $this->query->toc
             , null
             , null
             , $this->query->permanentOnly

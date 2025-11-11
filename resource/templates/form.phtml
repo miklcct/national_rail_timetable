@@ -81,6 +81,19 @@ for ($i = 0; $i < 5; ++$i) {
                    min="<?= html((new DateTimeImmutable('today'))->format('Y-m-d')) ?>"
                    max="<?= html((new DateTimeImmutable('+84 days'))->format('Y-m-d')) ?>"
             />
+        </label><br/>
+        <label>for the following TOCs (leave empty for all):
+            <select name="toc[]" multiple="multiple">
+                <?php
+                foreach (get_all_tocs() as $code => $name) {
+                    ?>
+                    <option value="<?= html($code) ?>" <?=
+                    in_array($code, $query['toc'] ?? [], true) ? 'selected="selected"' : ''
+                    ?>><?= html($name) ?></option>
+                    <?php
+                }
+                ?>
+            </select>
         </label>
     </p>
     <p>

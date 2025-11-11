@@ -45,6 +45,7 @@ class FixedLink extends PhpTemplate {
                     $this->query->connectingTime->sub(new DateInterval($this->query->arrivalMode ? 'PT4H30M' : 'P0D'))
                 )
                 : $this->query->date ?? Date::today()
+            , null
             , $departure_time === null
                 ? null
                 : $fixed_link->getArrivalTime($departure_time, $this->query->arrivalMode)
