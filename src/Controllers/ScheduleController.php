@@ -106,6 +106,9 @@ abstract class ScheduleController extends Application {
     }
 
     protected function getFixedLinks() : array {
+        if ($this->query->toc !== null) {
+            return [];
+        }
         $station = $this->query->station;
         if (!$station instanceof Station) {
             return [];

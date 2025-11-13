@@ -1,3 +1,6 @@
+## [2.7.1] - 2025-11-13
+* Do not show fixed links when filtered by TOC
+
 ## [2.7.0] - 2025-11-11
 * Add the ability to filter services by TOC
 
