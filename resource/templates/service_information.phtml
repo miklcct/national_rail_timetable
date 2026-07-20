@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-use Metroapps\NationalRailTimetable\Views\Components\ServiceInformation;
-use function Metroapps\NationalRailTimetable\Views\show_service_property_icons;
+use Miklcct\NationalRailTimetable\Views\Components\ServiceInformation;
+use function Miklcct\NationalRailTimetable\Views\show_service_property_icons;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
 /** @var ServiceInformation $this */
@@ -20,9 +20,9 @@ use function Miklcct\ThinPhpApp\Escaper\html;
                         ', '
                         , array_filter(
                             [
-                                $this->serviceProperty->trainCategory->getDescription(),
-                                $this->serviceProperty->identity !== '' ? 'ID ' . $this->serviceProperty->identity : '',
-                                $this->serviceProperty->headcode !== '' ? 'Headcode ' . $this->serviceProperty->headcode : '',
+                                $this->serviceProperty->trainCategory?->getDescription(),
+                                $this->serviceProperty->identity ? 'ID ' . $this->serviceProperty->identity : '',
+                                $this->serviceProperty->headcode ? 'Headcode ' . $this->serviceProperty->headcode : '',
                             ]
                         )
                     )
@@ -33,7 +33,7 @@ use function Miklcct\ThinPhpApp\Escaper\html;
                             ', '
                             , array_filter(
                                 [
-                                    $this->serviceProperty->power->getDescription(),
+                                    $this->serviceProperty->power?->getDescription(),
                                     $this->serviceProperty->timingLoad ? 'Class ' . $this->serviceProperty->timingLoad : '',
                                     $this->serviceProperty->speedMph ? html($this->serviceProperty->speedMph . ' mph max') : '',
                                 ]

@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views;
+namespace Miklcct\NationalRailTimetable\Views;
 
-use Miklcct\RailOpenTimetableData\Models\Station;
+use Miklcct\NationalRailTimetable\DomainModels\Station;
 use Miklcct\ThinPhpApp\View\PhpTemplate;
 use Psr\Http\Message\StreamFactoryInterface;
 

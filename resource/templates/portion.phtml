@@ -1,15 +1,15 @@
 <?php
 declare(strict_types=1);
 
-use Miklcct\RailOpenTimetableData\Enums\Activity;
-use Miklcct\RailOpenTimetableData\Models\Points\HasArrival;
-use Miklcct\RailOpenTimetableData\Models\Points\HasDeparture;
-use Miklcct\RailOpenTimetableData\Models\Points\IntermediatePoint;
-use Miklcct\RailOpenTimetableData\Models\Points\OriginPoint;
-use Miklcct\RailOpenTimetableData\Models\Service;
-use Miklcct\RailOpenTimetableData\Models\Station;
-use Metroapps\NationalRailTimetable\Views\Components\Portion;
-use Metroapps\NationalRailTimetable\Views\Components\ServiceInformation;
+use Miklcct\NationalRailTimetable\DomainModels\Points\HasArrival;
+use Miklcct\NationalRailTimetable\DomainModels\Points\HasDeparture;
+use Miklcct\NationalRailTimetable\DomainModels\Points\OriginOrIntermediatePoint;
+use Miklcct\NationalRailTimetable\Enums\Activity;
+use Miklcct\NationalRailTimetable\Enums\TimeType;
+use Miklcct\NationalRailTimetable\Models\PhysicalStation;
+use Miklcct\NationalRailTimetable\Views\Components\Portion;
+use Miklcct\NationalRailTimetable\Views\Components\ServiceInformation;
+use function Miklcct\NationalRailTimetable\Views\get_tiploc_data;
 use function Miklcct\ThinPhpApp\Escaper\html;
 use function Safe\json_encode;
 
@@ -18,73 +18,68 @@ use function Safe\json_encode;
 ?>
 <table class="calling_points" data-line="<?= html(json_encode($this->line)) ?>">
 <?php
-$points = $this->points;
+$points = $this->portion->timingPoints;
 $service_property = null;
 foreach ($points as $i => $point) {
-    if ($i !== 'dated_service') {
-        $show_arrival = $i !== 0 && $point instanceof HasArrival && $point->getPublicArrival() !== null;
-        $show_departure = $i !== count($points) - 1 && $point instanceof HasDeparture && $point->getPublicDeparture() !== null;
+    $show_arrival = $i !== 0 && $point instanceof HasArrival && $point->getPublicArrival() !== null;
+    $show_departure = $i !== count($points) - 1 && $point instanceof HasDeparture && $point->getPublicDeparture() !== null;
 
-        $tiploc_data = $this->tiplocData[$point->location->tiploc] ?? null;
+    $tiploc_data = get_tiploc_data()[$point->location->tiploc_code] ?? null;
 
-        $easting_northing = (
-            $point->location instanceof Station
-            ? sprintf(
-                'data-crs="%s" data-name="%s" data-easting="%d" data-northing="%d"',
-                html($point->location->getCrsCode()),
-                html($point->location->getShortName()),
-                $tiploc_data["easting"] ?? $point->location->easting,
-                $tiploc_data["northing"] ?? $point->location->northing
-            ) : ''
-        ) . (in_array(Activity::REQUEST_STOP, $point->activities, true) ? ' data-request-stop="1"' : '');
-        /** @noinspection TypeUnsafeComparisonInspection */
-        /** @noinspection PhpNonStrictObjectEqualityInspection */
-        if (($point instanceof OriginPoint || $point instanceof IntermediatePoint) && $point->serviceProperty !== null && $point->serviceProperty != $service_property && $i !== count($points) - 1) {
-            $service_property = $point->serviceProperty;
+    $easting_northing = (
+        $point->location instanceof PhysicalStation
+        ? sprintf(
+            'data-crs="%s" data-name="%s" data-easting="%d" data-northing="%d"',
+            html($point->location->crs_code),
+            html($point->location->getShortName()),
+            $tiploc_data["easting"] ?? $point->location->easting,
+            $tiploc_data["northing"] ?? $point->location->northing
+        ) : ''
+    ) . (in_array(Activity::REQUEST_STOP, $point->activities, true) ? ' data-request-stop="1"' : '');
+    /** @noinspection TypeUnsafeComparisonInspection */
+    /** @noinspection PhpNonStrictObjectEqualityInspection */
+    if ($point instanceof OriginOrIntermediatePoint
+            && $point->serviceProperty !== null && $point->serviceProperty != $service_property) {
+        $service_property = $point->serviceProperty;
 
-            if ($show_arrival && $point->isPublicCall()) {
+        if ($show_arrival && $point->isPublicCall()) {
 ?>
     <tr <?= $easting_northing ?>>
         <td><?= html($point->location->getShortName()) ?></td>
         <td><?= html($point->platform) ?></td>
-        <td class="time"><?= $this->showTime($point, false) ?></td>
+        <td class="time"><?= $this->showTime($point, TimeType::PUBLIC_ARRIVAL) ?></td>
         <td class="time"></td>
         <td><?= implode('<br/>', array_filter(array_map(
                 static fn(Activity $activity) => $activity->getDescription(), $point->activities))) ?></td>
     </tr>
     
 <?php
-            }
-            $service = $this->datedService->service;
-            if (!$service instanceof Service) {
-                throw new RuntimeException('Service must be a service.');
-            }
-            echo new ServiceInformation($this->getStreamFactory(), $service, $point->serviceProperty);
-            
-            if ($show_departure && $point->isPublicCall()) {
+        }
+        echo new ServiceInformation($this->getStreamFactory(), $this->portion, $point->serviceProperty);
+        
+        if ($show_departure && $point->isPublicCall()) {
 ?>
     <tr <?= $easting_northing ?>>
         <td><?= html($point->location->getShortName()) ?></td>
         <td><?= html($point->platform) ?></td>
         <td class="time"></td>
-        <td class="time"><?= $this->showTime($point, true) ?></td>
-        <td><?= implode('<br/>', array_filter(array_map(
-                static fn(Activity $activity) => $activity->getDescription(), $point->activities))) ?></td>
-    </tr>
-<?php
-            }
-        } elseif ($point->isPublicCall() && ($show_arrival || $show_departure)) {
-?>
-    <tr <?= $easting_northing ?>>
-        <td><?= html($point->location->getShortName()) ?></td>
-        <td><?= html($point->platform) ?></td>
-        <td class="time"><?= $show_arrival ? $this->showTime($point, false) : '' ?></td>
-        <td class="time"><?= $show_departure ? $this->showTime($point, true) : '' ?></td>
+        <td class="time"><?= $this->showTime($point, TimeType::PUBLIC_DEPARTURE) ?></td>
         <td><?= implode('<br/>', array_filter(array_map(
                 static fn(Activity $activity) => $activity->getDescription(), $point->activities))) ?></td>
     </tr>
 <?php
         }
+    } elseif ($point->isPublicCall() && ($show_arrival || $show_departure)) {
+?>
+    <tr <?= $easting_northing ?>>
+        <td><?= html($point->location->getShortName()) ?></td>
+        <td><?= html($point->platform) ?></td>
+        <td class="time"><?= $show_arrival ? $this->showTime($point, TimeType::PUBLIC_ARRIVAL) : '' ?></td>
+        <td class="time"><?= $show_departure ? $this->showTime($point, TimeType::PUBLIC_DEPARTURE) : '' ?></td>
+        <td><?= implode('<br/>', array_filter(array_map(
+                static fn(Activity $activity) => $activity->getDescription(), $point->activities))) ?></td>
+    </tr>
+<?php
     }
 }
 ?>

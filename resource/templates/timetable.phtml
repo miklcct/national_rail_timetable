@@ -1,24 +1,25 @@
 <?php
 declare(strict_types = 1);
 
-use Metroapps\NationalRailTimetable\Controllers\BoardQuery;
-use Metroapps\NationalRailTimetable\Controllers\TimetableController;
-use Miklcct\RailOpenTimetableData\Enums\ShortTermPlanning;
-use Miklcct\RailOpenTimetableData\Models\Location;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
-use Miklcct\RailOpenTimetableData\Models\ServiceCall;
-use Miklcct\RailOpenTimetableData\Models\ServiceCallWithDestination;
-use Miklcct\RailOpenTimetableData\Models\Timetable;
-use Metroapps\NationalRailTimetable\Views\Components\Timetable as TimetableView;
-use Metroapps\NationalRailTimetable\Views\ServiceView;
-use Metroapps\NationalRailTimetable\Views\ViewMode;
-use function Metroapps\NationalRailTimetable\Views\get_arrival_link;
-use function Metroapps\NationalRailTimetable\Views\get_header_classes;
-use function Metroapps\NationalRailTimetable\Views\show_activities;
-use function Metroapps\NationalRailTimetable\Views\show_facilities;
-use function Metroapps\NationalRailTimetable\Views\show_short_term_planning;
-use function Metroapps\NationalRailTimetable\Views\show_time;
-use function Metroapps\NationalRailTimetable\Views\show_toc;
+use Miklcct\NationalRailTimetable\Controllers\BoardQuery;
+use Miklcct\NationalRailTimetable\Controllers\TimetableController;
+use Miklcct\NationalRailTimetable\DomainModels\ServiceCall;
+use Miklcct\NationalRailTimetable\DomainModels\ServiceProperty;
+use Miklcct\NationalRailTimetable\DomainModels\Timetable;
+use Miklcct\NationalRailTimetable\Enums\ShortTermPlanning;
+use Miklcct\NationalRailTimetable\Enums\TimeType;
+use Miklcct\NationalRailTimetable\Models\Location;
+use Miklcct\NationalRailTimetable\Views\Components\Timetable as TimetableView;
+use Miklcct\NationalRailTimetable\Views\ServiceView;
+use Miklcct\NationalRailTimetable\Views\ViewMode;
+use function Miklcct\NationalRailTimetable\Views\get_arrival_link;
+use function Miklcct\NationalRailTimetable\Views\get_header_classes;
+use function Miklcct\NationalRailTimetable\Views\get_service_property;
+use function Miklcct\NationalRailTimetable\Views\show_activities;
+use function Miklcct\NationalRailTimetable\Views\show_facilities;
+use function Miklcct\NationalRailTimetable\Views\show_short_term_planning;
+use function Miklcct\NationalRailTimetable\Views\show_time;
+use function Miklcct\NationalRailTimetable\Views\show_toc;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
 /**
@@ -32,8 +33,8 @@ function get_colspan(array $array, int $i) {
     /** @noinspection TypeUnsafeComparisonInspection */
     while (
         isset($array[$i])
-        && $array[$i]->uid === $call->uid
-        && $array[$i]->timestamp == $call->timestamp
+        && $array[$i]->service->uid === $call->service->uid
+        && $array[$i]->callIndex == $call->callIndex
     ) {
         ++$colspan;
         ++$i;
@@ -42,47 +43,39 @@ function get_colspan(array $array, int $i) {
 }
 
 /** @var TimetableView $this */
-?>
-<?php
-    foreach ($this->boards as $board) {
-        $timetable = Timetable::generateFromBoard($board);
-        $stations = $timetable->stations;
-        /** @var ServiceCallWithDestination[][] $calls */
-        $calls = $timetable->calls;
+foreach ($this->boards as $board) {
+    $timetable = Timetable::generateFromBoard($board);
+    $stations = $timetable->stations;
+    $calls = $timetable->calls;
 
-        $destinations = $board->getDestinations();
-        // if the via point is a destination don't show it
-        $via = array_filter(
-            $board->getDestinations(true)
-            , static fn(LocationWithCrs $station) =>
-                !in_array(
-                    $station->getCrsCode()
-                    , array_map(static fn(LocationWithCrs $destination) => $destination->getCrsCode(), $destinations)
-                    , true
-                )
-        );
-        if ($destinations === []) {
-            // no destinations are found - probably because trains both run A-B-C and A-C-B
-            // load the last 2 locations where trains terminate
-            $first_index = $this->query->arrivalMode ? 1 : count($timetable->stations) - 1;
-            $index = $this->query->arrivalMode ? 2 : $first_index - 1;
-            while (
-                array_filter(
-                    $calls[$index]
-                    , static fn(string $uid_date) => !isset($calls[$first_index][$uid_date]),
-                    ARRAY_FILTER_USE_KEY
-                ) === []
-            ) {
-                $index += $this->query->arrivalMode ? 1 : -1;
-            }
-            $destinations = [$stations[$first_index], $stations[$index]];
+    $destinations = $board->getDestinations();
+    // if the via point is a destination don't show it
+    $via = $board->getViaPoint();
+    if (array_find($destinations, static fn(Location $location) => $location->getCrsOrTiplocCode() === $via?->getCrsOrTiplocCode())) {
+        $via = null;
+    }
+    if ($destinations === []) {
+        // no destinations are found - probably because trains both run A-B-C and A-C-B
+        // load the last 2 locations where trains terminate
+        $first_index = $this->query->arrivalMode ? 1 : count($timetable->stations) - 1;
+        $index = $this->query->arrivalMode ? 2 : $first_index - 1;
+        while (
+            array_filter(
+                $calls[$index]
+                , static fn(string $uid_date) => !isset($calls[$first_index][$uid_date]),
+                ARRAY_FILTER_USE_KEY
+            ) === []
+        ) {
+            $index += $this->query->arrivalMode ? 1 : -1;
         }
-        $shown_stations = $this->getShownRows($timetable);
+        $destinations = [$stations[$first_index], $stations[$index]];
+    }
+    $shown_stations = $this->getShownRows($timetable);
 ?>
         <section>
             <h2>Trains
                 <?= $this->query->arrivalMode && $destinations ? ' from ' . html(implode(', ', array_map(static fn(Location $location) => $location->getShortName(), $destinations))) : '' ?>
-                <?= $via ? ' via ' . html(implode(', ', array_map(static fn(Location $location) => $location->getShortName(), $via))) : '' ?>
+                <?= $via ? ' via ' . html($via->getShortName()) : '' ?>
                 <?= !$this->query->arrivalMode && $destinations ? ' towards ' . html(implode(', ', array_map(static fn(Location $location) => $location->getShortName(), $destinations))) : '' ?>
             </h2>
             <div class="container">
@@ -92,145 +85,149 @@ function get_colspan(array $array, int $i) {
                         <tr class="info">
                             <th class="station_column">TOC</th>
 <?php
-        $i = 0;
-        while (isset($calls[0][$i])) {
-            $call = $calls[0][$i];
-            $colspan = get_colspan($calls[0], $i);
+    $i = 0;
+    while (isset($calls[0][$i])) {
+        $call = $calls[0][$i];
+        $colspan = get_colspan($calls[0], $i);
 ?>
-                            <th class="<?= get_header_classes($call) . ' service' ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->timestamp->getTimestamp()) ?>">
-                                <?= show_toc($call->toc) ?>
+                            <th class="<?= get_header_classes($call) . ' service' ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->getTimestamp($this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE)->getTimestamp()) ?>">
+                                <?= show_toc($call->service->toc) ?>
                             </th>
 <?php
-            $i += $colspan;
-        }
+        $i += $colspan;
+    }
 ?>
                         </tr>
                         <tr class="info">
                             <td class="station_column">STP</td>
-                            <?php
-                            $i = 0;
-                            while (isset($calls[0][$i])) {
-                                $call = $calls[0][$i];
-                                $colspan = get_colspan($calls[0], $i);
-                                ?>
-                                <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->timestamp->getTimestamp()) ?>">
-                                    <?= show_short_term_planning($call) ?>
-                                </td>
-                                <?php
-                                $i += $colspan;
-                            }
-                            ?>
+<?php
+    $i = 0;
+    while (isset($calls[0][$i])) {
+        $call = $calls[0][$i];
+        $colspan = get_colspan($calls[0], $i);
+?>
+                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->getTimestamp($this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE)->getTimestamp()) ?>">
+                                <?= show_short_term_planning($call) ?>
+                            </td>
+<?php
+        $i += $colspan;
+    }
+?>
                         </tr>
                         <tr class="info">
                             <td class="station_column">Train ID</td>
 <?php
-        $i = 0;
-        while (isset($calls[0][$i])) {
-            $call = $calls[0][$i];
-            $colspan = get_colspan($calls[0], $i);
-            $i += $colspan;
+    $i = 0;
+    while (isset($calls[0][$i])) {
+        $call = $calls[0][$i];
+        $colspan = get_colspan($calls[0], $i);
+        $i += $colspan;
 ?>
-                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= html($call->serviceProperty->identity) ?></td>
+                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= html(get_service_property($call, $this->query)->identity) ?></td>
 <?php
-        }
+    }
 ?>
                         </tr>
                         <tr class="info">
                             <td class="station_column">Headcode</td>
 <?php
-        $i = 0;
-        while (isset($calls[0][$i])) {
-            $call = $calls[0][$i];
-            $colspan = get_colspan($calls[0], $i);
-            $i += $colspan;
+    $i = 0;
+    while (isset($calls[0][$i])) {
+        $call = $calls[0][$i];
+        $colspan = get_colspan($calls[0], $i);
+        $i += $colspan;
 ?>
-                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= html($call->serviceProperty->headcode) ?></td>
+                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= html(get_service_property($call, $this->query)->headcode) ?></td>
 <?php
-        }
+    }
 ?>
                         </tr>
                         <tr class="info">
                             <td class="station_column">Origin</td>
 <?php
-        $i = 0;
-        while (isset($calls[0][$i])) {
-            $call = $calls[0][$i];
-            if ($this->query->arrivalMode) {
-                foreach ($call->origins as $origin) {
-                    $location = $origin->location;
-                    if (!$location instanceof LocationWithCrs) {
-                        $location = null;
-                    }
+    $i = 0;
+    while (isset($calls[0][$i])) {
+        $call = $calls[0][$i];
+        if ($this->query->arrivalMode) {
+            foreach ($call->service->getOriginPortions() as $origin) {
+                $location = array_first($origin->timingPoints)->location;
 ?>
-                            <td class="<?= get_header_classes($call) ?>"><abbr title="<?=
-                                html($location?->getShortName()) ?>"><?= html($location?->getCrsCode()) ?></abbr></td>
+                            <td class="<?= get_header_classes($call) ?>"><abbr title="<?= html($location->getShortName()) ?>"><?= html($location->crs_code) ?></abbr></td>
 <?php
-                    ++$i;
-                }
-            } else {
-                $colspan = get_colspan($calls[0], $i);
+                ++$i;
+            }
+        } else {
+            $colspan = get_colspan($calls[0], $i);
 ?>
                             <td class="<?= get_header_classes($call) ?>" colspan="<?= $colspan ?>">
 <?php
-                foreach ($call->origins as $origin) {
-                    $location = $origin->location;
-                    if (!$location instanceof LocationWithCrs) {
-                        $location = null;
-                    }
+            foreach ($call->service->getOriginPortions() as $origin) {
+                $location = array_first($origin->timingPoints)->location;
 ?>
-                    <abbr title="<?= html($location?->getShortName()) ?>"><?= html($location?->getCrsCode()) ?></abbr>
+                                <abbr title="<?= html($location->getShortName()) ?>"><?= html($location->crs_code) ?></abbr>
 <?php
-                }
+            }
 ?>
                             </td>
 <?php
-                $i += $colspan;
-            }
+            $i += $colspan;
         }
+    }
 ?>
                         </tr>
                         <tr class="info">
                             <td class="station_column">Destination</td>
 <?php
-        $i = 0;
-        while (isset($calls[0][$i])) {
-            $call = $calls[0][$i];
-            if (!$this->query->arrivalMode) {
-                foreach ($call->destinations as $destination) {
-                    $location = $destination->location;
-                    if (!$location instanceof LocationWithCrs) {
-                        $location = null;
-                    }
+    $i = 0;
+    while (isset($calls[0][$i])) {
+        $call = $calls[0][$i];
+        if (!$this->query->arrivalMode) {
+            foreach ($call->service->getDestinationPortions() as $destination) {
+                $location = array_last($destination->timingPoints)->location;
 ?>
                             <td class="<?= get_header_classes($call) ?>"><abbr title="<?=
-                                html($location?->getShortName()) ?>"><?= html($location?->getCrsCode()) ?></abbr></td>
+                                html($location->getShortName()) ?>"><?= html($location->crs_code) ?></abbr></td>
 <?php
-                    ++$i;
-                }
-            } else {
-                $colspan = get_colspan($calls[0], $i);
+                ++$i;
+            }
+        } else {
+            $colspan = get_colspan($calls[0], $i);
 ?>
                             <td class="<?= get_header_classes($call) ?>" colspan="<?= $colspan ?>">
 <?php
-                foreach ($call->destinations as $destination) {
-                    $location = $destination->location;
-                    if (!$location instanceof LocationWithCrs) {
-                        $location = null;
-                    }
+            foreach ($call->service->getDestinationPortions() as $destination) {
+                $location = array_last($destination->timingPoints)->location;
 ?>
-                    <abbr title="<?= html($location?->getShortName()) ?>"><?= html($location?->getCrsCode()) ?></abbr>
+                                <abbr title="<?= html($location->getShortName()) ?>"><?= html($location->crs_code) ?></abbr>
 <?php
-                }
+            }
 ?>
                             </td>
 <?php
-                $i += $colspan;
-            }
+            $i += $colspan;
         }
+    }
 ?>
                         </tr>
                         <tr class="info">
                             <td class="station_column">Facilities</td>
+<?php
+    $i = 0;
+    while (isset($calls[0][$i])) {
+        $call = $calls[0][$i];
+        $colspan = get_colspan($calls[0], $i);
+        $i += $colspan;
+?>
+                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= show_facilities($call->service->mode, get_service_property($call, $this->query)) ?></td>
+<?php
+    }
+?>
+                        </tr>
+<?php
+    $show_platforms = static function () use ($calls) {
+?>
+        <tr class="info">
+            <td class="station_column">Platform</td>
 <?php
         $i = 0;
         while (isset($calls[0][$i])) {
@@ -238,128 +235,111 @@ function get_colspan(array $array, int $i) {
             $colspan = get_colspan($calls[0], $i);
             $i += $colspan;
 ?>
-                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= show_facilities($call) ?></td>
+            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= html($call->timingPoint->platform) ?></td>
 <?php
         }
 ?>
-                        </tr>
+        </tr>
 <?php
-        $show_platforms = static function () use ($calls) {
-?>
-            <tr class="info">
-                <td class="station_column">Platform</td>
-<?php
-            $i = 0;
-            while (isset($calls[0][$i])) {
-                $call = $calls[0][$i];
-                $colspan = get_colspan($calls[0], $i);
-                $i += $colspan;
-?>
-                <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= html($call->call->platform) ?></td>
-<?php
-            }
-?>
-            </tr>
-<?php
-        };
-        if (!$this->query->arrivalMode) {
-            $show_platforms();
-        }
+    };
+    if (!$this->query->arrivalMode) {
+        $show_platforms();
+    }
 ?>
 <?php
-        foreach (array_keys($shown_stations) as $row_number => $i) {
-            $station = $stations[$i];
-            if ($i === 0 && $this->query->arrivalMode) {
+    foreach (array_keys($shown_stations) as $row_number => $i) {
+        $station = $stations[$i];
+        if ($i === 0 && $this->query->arrivalMode) {
 ?>
                     </thead>
                     <tfoot>
 <?php
-            } elseif ($row_number === 1) {
-                if ($this->query->arrivalMode) {
-                    $show_platforms();
+        } elseif ($row_number === 1) {
+            if ($this->query->arrivalMode) {
+                $show_platforms();
 ?>
                     </tfoot>
 <?php
-                } else {
+            } else {
 ?>
                     </thead>
 <?php
-                }
+            }
 ?>
                     <tbody>
 <?php
-            }
+        }
 ?>
-                        <tr class="<?= $i === 0 ? 'origin' : '' ?> <?= $i !== 0 && in_array($station->getCrsCode(), array_map(static fn(LocationWithCrs $location) => $location->getCrsCode(), $this->query->filter), true) ? 'destination' : '' ?>">
+                        <tr class="<?= $i === 0 ? 'origin' : '' ?> <?= $i !== 0 && in_array($station->getCrsOrTiplocCode(), array_map(static fn(Location $location) => $location->getCrsOrTiplocCode(), $this->query->filter), true) ? 'destination' : '' ?>">
                             <td class="station_column">
                                 <div class="station_name">
                                     <span>
 
 <?php
-            if ($i !== 0) {
+        if ($i !== 0) {
 ?>
                                         <a href="<?= html((new BoardQuery($this->query->arrivalMode, $this->query->station, [$station], $this->query->inverseFilter, $this->query->date, $this->query->toc, $this->query->connectingTime, $this->query->connectingToc, $this->query->permanentOnly))->getUrl(
                                             TimetableController::URL
                                         )) ?>">
 <?php
-            }
+        }
 ?>
                                             <?= html($station->getShortName()) ?>
 <?php
-            if ($i !== 0) {
+        if ($i !== 0) {
 ?>
                                         </a>
 <?php
-            }
-            $is_arrival = $this->query->arrivalMode === ($i === 0);
+        }
+        $is_arrival = $this->query->arrivalMode === ($i === 0);
 ?>
                                     </span>
                                     <abbr class="departure_arrival" title="<?= html($is_arrival ? 'arrival' : 'departure') ?>"><?= html($is_arrival ? 'a' : 'd') ?></abbr>
                                 </div>
                             </td>
 <?php
-            $j = 0;
-            while (isset($calls[0][$j])) {
-                $colspan = isset($calls[$i][$j]) ? get_colspan($calls[$i], $j) : 1;
-                $connection_class =
-                    $this->query->connectingTime !== null
-                    ? array_reduce(range($j, $j + $colspan - 1), fn($carry, $item) => $carry || $calls[0][$item]->isValidConnection($this->query->connectingTime, $this->query->connectingToc), false)
-                        ? 'valid_connection'
-                        : 'invalid_connection'
-                    : '';
-                if (
-                    $i !== 0
-                    && isset($calls[$i][$j])
-                    && $board->isCallOvertaken(
-                        $calls[0][$j]
-                        , $calls[$i][$j]
-                    )
-                ) {
-                    $connection_class .= ' overtaken';
-                }
-                if ($calls[0][$j]->shortTermPlanning !== ShortTermPlanning::PERMANENT) {
-                    $connection_class .= ' stp';
-                }
-                if (!isset($calls[$i][$j])) {
+        $j = 0;
+        while (isset($calls[0][$j])) {
+            $colspan = isset($calls[$i][$j]) ? get_colspan($calls[$i], $j) : 1;
+            $connection_class =
+                $this->query->connectingTime !== null
+                ? array_reduce(range($j, $j + $colspan - 1), fn($carry, $item) => $carry || $calls[0][$item]->isValidConnection($this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE, $this->query->connectingTime, $this->query->connectingToc), false)
+                    ? 'valid_connection'
+                    : 'invalid_connection'
+                : '';
+            if (
+                $i !== 0
+                && isset($calls[$i][$j])
+                && $board->isCallOvertaken(
+                    $calls[0][$j]
+                    , $calls[$i][$j]
+                )
+            ) {
+                $connection_class .= ' overtaken';
+            }
+            if ($calls[0][$j]->service->shortTermPlanning !== ShortTermPlanning::PERMANENT) {
+                $connection_class .= ' stp';
+            }
+            if (!isset($calls[$i][$j])) {
 ?>
                             <td class="<?= $connection_class ?>"></td>
 <?php
-                    ++$j;
-                } else {
-                    $call = $calls[$i][$j];
-                    $link = $i === 0
-                        ? ServiceView::getServiceUrl($call->uid, $call->date, $this->query->permanentOnly, ViewMode::TIMETABLE)
-                        : get_arrival_link(TimetableController::URL, $calls[$i][$j], $this->query);
+                ++$j;
+            } else {
+                $call = $calls[$i][$j];
+                $link = $i === 0
+                    ? ServiceView::getServiceUrl($call->service->uid, $call->service->date, $this->query->permanentOnly, ViewMode::TIMETABLE)
+                    : get_arrival_link(TimetableController::URL, $calls[$i][$j], $this->query);
 ?>
-                           <td class="<?= $connection_class ?>" colspan=<?= $colspan ?>><?= show_time($call->timestamp, $this->date, $link) . show_activities($call->call->activities) ?></td>
+                           <td class="<?= $connection_class ?>" colspan=<?= $colspan ?>><?= show_time($call->getTimestamp($this->query->arrivalMode === (bool)$i ? TimeType::PUBLIC_DEPARTURE : TimeType::PUBLIC_ARRIVAL), $this->date, $link) . show_activities($call->timingPoint->activities) ?></td>
 <?php
-                    $j += $colspan;
-                }
+                $j += $colspan;
             }
+        }
 ?>
                         </tr>
 <?php
-        }
+    }
 ?>
                     </tbody>
                 </table>

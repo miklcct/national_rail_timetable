@@ -1,17 +1,17 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views;
+namespace Miklcct\NationalRailTimetable\Views;
 
 use LogicException;
-use Metroapps\NationalRailTimetable\Controllers\BoardController;
-use Metroapps\NationalRailTimetable\Controllers\BoardQuery;
-use Metroapps\NationalRailTimetable\Controllers\TimetableController;
-use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\DepartureBoard;
-use Miklcct\RailOpenTimetableData\Models\FixedLink;
-use Miklcct\RailOpenTimetableData\Models\Location;
-use Metroapps\NationalRailTimetable\Views\Components\Board;
+use Miklcct\NationalRailTimetable\Controllers\BoardController;
+use Miklcct\NationalRailTimetable\Controllers\BoardQuery;
+use Miklcct\NationalRailTimetable\Controllers\TimetableController;
+use Miklcct\NationalRailTimetable\DomainModels\DepartureBoard;
+use Miklcct\NationalRailTimetable\Models\FixedLink;
+use Miklcct\NationalRailTimetable\Models\Location;
+use Miklcct\NationalRailTimetable\ValueObjects\Date;
+use Miklcct\NationalRailTimetable\Views\Components\Board;
 use Miklcct\ThinPhpApp\View\PhpTemplate;
 use Miklcct\ThinPhpApp\View\View;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -30,7 +30,6 @@ class ScheduleView extends PhpTemplate {
      * @param Date $date
      * @param BoardQuery $query
      * @param FixedLink[]|null $fixedLinks
-     * @param Date|null $generated
      */
     public function __construct(
         StreamFactoryInterface $streamFactory
@@ -38,7 +37,6 @@ class ScheduleView extends PhpTemplate {
         , protected readonly Date $date
         , protected readonly BoardQuery $query
         , protected readonly ?array $fixedLinks
-        , protected readonly ?Date $generated
         , protected readonly string $siteName
         , protected readonly View $innerView
     ) {
@@ -50,17 +48,17 @@ class ScheduleView extends PhpTemplate {
             '%s %s at %s %s %s %s%s - %s'
             , $this->query->arrivalMode ? 'Arrivals' : 'Departures'
             , strtolower($this->getViewMode()->name)
-            , $this->query->station->name ?? ''
+            , $this->query->station->getName() ?? ''
             , $this->query->filter !== []
                 ? ($this->query->arrivalMode ? 'from ' : 'to ') . implode(
                     ', '
-                    , array_map(static fn(Location $location) => $location->name, $this->query->filter)
+                    , array_map(static fn(Location $location) => $location->getName(), $this->query->filter)
                 )
                 : ''
             , $this->query->inverseFilter !== []
                 ? 'not ' . implode(
                     ', '
-                    , array_map(static fn(Location $location) => $location->name, $this->query->inverseFilter)
+                    , array_map(static fn(Location $location) => $location->getName(), $this->query->inverseFilter)
                 )
                 : ''
             , $this->query->date === null ? 'today' : 'on ' . $this->date
@@ -78,19 +76,19 @@ class ScheduleView extends PhpTemplate {
             '<div class="heading"><h1>%s %s at %s %s</h1><p>%s %s</p></div>'
             , $this->query->arrivalMode ? 'Arrivals' : 'Departures'
             , strtolower($this->getViewMode()->name)
-            , html($location->name)
+            , html($location->getName())
             , ' on ' . $this->date
             , $filter !== [] ? 'calling at ' . implode(
                 ', '
                 , array_map(
-                    static fn(Location $location) => $location->name
+                    static fn(Location $location) => $location->getName()
                     , $filter
                 )
             ) : ''
             , $inverse_filter !== [] ? 'but not ' . implode(
                 ', '
                 , array_map(
-                    static fn(Location $location) => $location->name
+                    static fn(Location $location) => $location->getName()
                     , $inverse_filter
                 )
             ) : ''

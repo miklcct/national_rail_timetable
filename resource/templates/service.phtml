@@ -1,16 +1,12 @@
 <?php
 declare(strict_types=1);
 
-use Metroapps\NationalRailTimetable\Views\Components\AllPortions;
-use Metroapps\NationalRailTimetable\Views\ServiceView;
-use function Miklcct\RailOpenTimetableData\get_all_tocs;
-use function Metroapps\NationalRailTimetable\Views\show_script_tags;
+use Miklcct\NationalRailTimetable\Views\Components\AllPortions;
+use Miklcct\NationalRailTimetable\Views\ServiceView;
+use function Miklcct\NationalRailTimetable\Views\show_script_tags;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
 /** @var ServiceView $this */
-
-$service = $this->datedService->service;
-$date = $this->datedService->date;
 ?>
 
 <!DOCTYPE html>
@@ -29,7 +25,7 @@ show_script_tags('service.ts');
         <header class="<?= html($this->permanentOnly ? 'permanent' : '') ?>">
             <div class="heading">
                 <h1><?= html($this->getTitle()) ?></h1>
-                <p><?= html(get_all_tocs()[$service->toc] ?? '') ?></p>
+                <p><?= html($this->service->getTocName()) ?></p>
             </div>
             <a href="<?= html($this->fromViewMode->getUrl()) ?>">Home</a>
         </header>
@@ -42,15 +38,24 @@ if ($this->permanentOnly) {
 }
 ?>
             <div id="map"><div id="popup"></div></div>
-        </main>
 <?php
+$service = $this->service;
+while ($service->divideFrom !== null) {
+    $service = $service->divideFrom;
+}
+while ($service->joinTo !== null) {
+    $service = $service->joinTo;
+}
 echo new AllPortions(
     $this->getStreamFactory()
-    , $this->getOriginPortion()->date
-    , $this->splitIntoPortions($this->datedService)
+    , $this->originPortion->date
+    , $service
     , $this->permanentOnly
     , $this->fromViewMode
 );
+?>
+        </main>
+<?php
 require __DIR__ . '/footer.phtml';
 ?>
     </body>

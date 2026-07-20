@@ -1,0 +1,26 @@
+<?php
+declare(strict_types=1);
+
+namespace Miklcct\NationalRailTimetable\Enums;
+
+enum TrainClass : string {
+    case BOTH = 'B';
+    case FIRST = 'F';
+    case STANDARD = 'S';
+
+    public function hasFirstClass() : bool {
+        return $this === self::BOTH || $this === self::FIRST;
+    }
+
+    public function hasStandardClass() : bool {
+        return $this === self::BOTH || $this === self::STANDARD;
+    }
+
+    public function getDescription() : string {
+        return match($this) {
+            self::BOTH => 'First & Standard',
+            self::FIRST => 'First only',
+            self::STANDARD => 'Standard only',
+        };
+    }
+}

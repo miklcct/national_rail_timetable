@@ -1,22 +1,24 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Controllers;
+namespace Miklcct\NationalRailTimetable\Controllers;
 
+use DateTimeImmutable;
 use GuzzleHttp\Psr7\Response;
-use Metroapps\NationalRailTimetable\Config\Config;
-use Metroapps\NationalRailTimetable\Exceptions\StationNotFound;
-use Metroapps\NationalRailTimetable\Middlewares\CacheMiddleware;
-use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\FixedLink;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
-use Miklcct\RailOpenTimetableData\Models\Station;
-use Miklcct\RailOpenTimetableData\Repositories\FixedLinkRepositoryInterface;
-use Miklcct\RailOpenTimetableData\Repositories\LocationRepositoryInterface;
-use Miklcct\RailOpenTimetableData\Repositories\ServiceRepositoryFactoryInterface;
-use Metroapps\NationalRailTimetable\Views\ScheduleFormView;
-use Metroapps\NationalRailTimetable\Views\ScheduleView;
-use Metroapps\NationalRailTimetable\Views\ViewMode;
+use Miklcct\NationalRailTimetable\Config\Config;
+use Miklcct\NationalRailTimetable\DomainModels\DepartureBoard;
+use Miklcct\NationalRailTimetable\Enums\TimeType;
+use Miklcct\NationalRailTimetable\Exceptions\AmbiguousStation;
+use Miklcct\NationalRailTimetable\Exceptions\StationNotFound;
+use Miklcct\NationalRailTimetable\Middlewares\CacheMiddleware;
+use Miklcct\NationalRailTimetable\Models\FixedLink;
+use Miklcct\NationalRailTimetable\Models\Location;
+use Miklcct\NationalRailTimetable\Models\PhysicalStation;
+use Miklcct\NationalRailTimetable\ValueObjects\Date;
+use Miklcct\NationalRailTimetable\ValueObjects\Time;
+use Miklcct\NationalRailTimetable\Views\ScheduleFormView;
+use Miklcct\NationalRailTimetable\Views\ScheduleView;
+use Miklcct\NationalRailTimetable\Views\ViewMode;
 use Miklcct\ThinPhpApp\Controller\Application;
 use Miklcct\ThinPhpApp\Response\ViewResponseFactoryInterface;
 use Miklcct\ThinPhpApp\View\View;
@@ -35,12 +37,9 @@ abstract class ScheduleController extends Application {
         protected readonly ViewResponseFactoryInterface $viewResponseFactory
         , protected readonly StreamFactoryInterface $streamFactory
         , private readonly CacheMiddleware $cacheMiddleware
-        , protected readonly ServiceRepositoryFactoryInterface $serviceRepositoryFactory
-        , protected readonly LocationRepositoryInterface $locationRepository
-        , protected readonly FixedLinkRepositoryInterface $fixedLinkRepository
         , private readonly Config $config
     ) {}
-    abstract protected function getInnerView() : View;
+    abstract protected function getInnerView(Date $date, DepartureBoard $board) : View;
     abstract protected function getViewMode() : ViewMode;
 
     public function getQuery() : BoardQuery {
@@ -66,8 +65,8 @@ abstract class ScheduleController extends Application {
             }
         }
         try {
-            $this->query = BoardQuery::fromArray($query, $this->locationRepository);
-        } catch (StationNotFound $e) {
+            $this->query = BoardQuery::fromArray($query);
+        } catch (StationNotFound|AmbiguousStation $e) {
             return $this->createEmptyFormResponse($e);
         }
 
@@ -86,21 +85,23 @@ abstract class ScheduleController extends Application {
 
 
         $date = $this->query->date ?? Date::today();
-        $service_repository = ($this->serviceRepositoryFactory)($this->query->permanentOnly);
-        $updated = $service_repository->getGeneratedDate();
-        if ($updated !== null && $date->toDateTimeImmutable()->getTimestamp() < $updated->toDateTimeImmutable()->getTimestamp() - 7 * 24 * 60 * 60) {
-            throw new HttpException('The timetable more than a week ago is no longer available.', Http::GONE);
+        $updated = null;
+        if ($updated !== null && $date->toDateTimeImmutable()->getTimestamp() < $updated->toDateTimeImmutable()->getTimestamp()) {
+            throw new HttpException('The timetable in the past is no longer available.', Http::GONE);
         }
+        $time_type = $this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE;
+        $station = $this->query->station;
+        $board = DepartureBoard::loadDepartureBoardOfStation($station, $date, $time_type, $this->query->permanentOnly)
+            ->filterByDestination($this->query->filter, $this->query->inverseFilter);
         return ($this->viewResponseFactory)(
             new ScheduleView(
                 $this->streamFactory
-                , $this->locationRepository->getAllStations()
+                , self::getAllStations()
                 , $date
                 , $this->query
                 , $this->getFixedLinks()
-                , $service_repository->getGeneratedDate()
                 , $this->config->siteName
-                , $this->getInnerView()
+                , $this->getInnerView($date, $board)
             )
         );
     }
@@ -110,7 +111,7 @@ abstract class ScheduleController extends Application {
             return [];
         }
         $station = $this->query->station;
-        if (!$station instanceof Station) {
+        if (!$station instanceof PhysicalStation) {
             return [];
         }
         /** @var FixedLink[] $fixed_links */
@@ -119,12 +120,13 @@ abstract class ScheduleController extends Application {
         $arrival_mode = $this->query->arrivalMode;
         $destinations = $this->query->filter;
         $date = $this->query->date ?? Date::today();
-        foreach ($this->fixedLinkRepository->get($arrival_mode ? null : $station->crsCode, $arrival_mode ? $station->crsCode : null) as $fixed_link) {
+        /** @var FixedLink $fixed_link */
+        foreach (($arrival_mode ? $station->incomingFixedLinks()->with('originStation') : $station->outgoingFixedLinks()->with('destinationStation'))->get() as $fixed_link) {
             if (
                 $destinations === [] || in_array(
-                    $arrival_mode ? $fixed_link->origin->crsCode : $fixed_link->destination->crsCode
+                    $arrival_mode ? $fixed_link->origin : $fixed_link->destination
                     , array_map(
-                        static fn(LocationWithCrs $destination) => $destination->getCrsCode()
+                        static fn(Location $destination) => $destination->getCrsOrTiplocCode()
                         , $destinations
                     )
                     , true
@@ -132,7 +134,7 @@ abstract class ScheduleController extends Application {
             ) {
                 if ($fixed_link_departure_time !== null) {
                     $arrival_time = $fixed_link->getArrivalTime($fixed_link_departure_time, $arrival_mode);
-                    $existing = $fixed_links[$arrival_mode ? $fixed_link->origin->crsCode : $fixed_link->destination->crsCode] ?? null;
+                    $existing = $fixed_links[$arrival_mode ? $fixed_link->origin : $fixed_link->destination] ?? null;
                     if (
                         $arrival_time !== null
                         && (
@@ -143,7 +145,7 @@ abstract class ScheduleController extends Application {
                             && $fixed_link->priority > $existing->priority
                         )
                     ) {
-                        $fixed_links[$arrival_mode ? $fixed_link->origin->crsCode : $fixed_link->destination->crsCode] = $fixed_link;
+                        $fixed_links[$arrival_mode ? $fixed_link->origin : $fixed_link->destination] = $fixed_link;
                     }
                 } elseif ($fixed_link->isActiveOnDate($date)) {
                     $fixed_links[] = $fixed_link;
@@ -153,26 +155,29 @@ abstract class ScheduleController extends Application {
 
         usort(
             $fixed_links
-            , static fn(FixedLink $a, FixedLink $b) => $a->origin->crsCode === $b->origin->crsCode
-                ? $a->destination->crsCode === $b->destination->crsCode
-                    ? $a->startTime->toHalfMinutes() <=> $b->startTime->toHalfMinutes()
-                    : $a->destination->crsCode <=> $b->destination->crsCode
-                : $a->origin->crsCode <=> $b->origin->crsCode
+            , static fn(FixedLink $a, FixedLink $b) => $a->origin === $b->origin
+                ? $a->destination === $b->destination
+                    ? $a->start_time->secondsFromOrigin <=> $b->start_time->secondsFromOrigin
+                    : $a->destination <=> $b->destination
+                : $a->origin <=> $b->origin
         );
         return $fixed_links;
     }
 
-    private function createEmptyFormResponse(?StationNotFound $e) : ResponseInterface {
+    private function createEmptyFormResponse(StationNotFound|AmbiguousStation|null $e) : ResponseInterface {
         return ($this->viewResponseFactory)(
             new ScheduleFormView(
                 $this->streamFactory
-                , $this->locationRepository->getAllStations()
+                , self::getAllStations()
                 , $this->getViewMode()
                 , $this->config->siteName
-                , ($this->serviceRepositoryFactory)()->getGeneratedDate()
                 , $e?->getMessage()
             )
         )->withStatus($e ? WebDAV::UNPROCESSABLE_ENTITY : Http::OK);
+    }
+    
+    private static function getAllStations() : array {
+        return PhysicalStation::primary()->orderBy('crs_code')->get()->all();
     }
 
     private BoardQuery $query;

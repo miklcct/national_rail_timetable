@@ -4,18 +4,13 @@ declare(strict_types = 1);
 use DI\ContainerBuilder;
 use Http\Factory\Guzzle\ResponseFactory;
 use Http\Factory\Guzzle\StreamFactory;
-use Metroapps\NationalRailTimetable\Config\Config;
-use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Repositories\FixedLinkRepositoryInterface;
-use Miklcct\RailOpenTimetableData\Repositories\LocationRepositoryInterface;
-use Miklcct\RailOpenTimetableData\Repositories\MongodbFixedLinkRepository;
-use Miklcct\RailOpenTimetableData\Repositories\MongodbLocationRepository;
-use Miklcct\RailOpenTimetableData\Repositories\MongodbServiceRepositoryFactory;
-use Miklcct\RailOpenTimetableData\Repositories\ServiceRepositoryFactoryInterface;
+use Illuminate\Database\Capsule\Manager;
+use Illuminate\Database\Connection;
+use Illuminate\Database\QueryException;
+use Miklcct\NationalRailTimetable\Config\Config;
+use Miklcct\NationalRailTimetable\ValueObjects\Date;
 use Miklcct\ThinPhpApp\Response\ViewResponseFactory;
 use Miklcct\ThinPhpApp\Response\ViewResponseFactoryInterface;
-use MongoDB\Client;
-use MongoDB\Database;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -28,32 +23,67 @@ use Whoops\Handler\PlainTextHandler;
 use Whoops\Handler\PrettyPageHandler;
 use Whoops\Run;
 use function DI\autowire;
-use function Miklcct\RailOpenTimetableData\get_generated;
 
-/**
- * Return the 2 databases defined in the application
- * 
- * The database at index 0 is the one currently used, while the one at index 1 is available for importing new data
- * 
- * @return Database[]
- */
-function get_databases() : array {
+function initialise_database() : ?Date {
+    $capsule = get_capsule();
+    $connections = get_generated_dates($capsule);
+    $capsule->getDatabaseManager()->setDefaultConnection(array_key_first($connections));
+    $capsule->bootEloquent();
+    return array_first($connections);
+}
+
+function get_generated_dates(Manager $capsule) : array {
+    $result = array_combine(
+        array_keys(get_database_config())
+        , array_map(fn(string $connection_name) => get_generated_date($capsule->getConnection($connection_name)), array_keys(get_database_config()))
+    );
+    uasort($result, static fn($a, $b) => $b <=> $a);
+    return $result;
+}
+
+function get_database_config() : array {
     $container = get_container();
     /** @var Config $config */
     $config = $container->get(Config::class);
-    $databases = array_map(
-        static fn (string $name) => $container->get(Client::class)->selectDatabase($name)
-        , [$config->databaseName, $config->alternativeDatabaseName]
-    );
-    /** @var (Date|null)[] $generated_dates */
-    $generated_dates = array_map(
-        get_generated(...)
-        , $databases
-    );
-    if ($generated_dates[0]?->toDateTimeImmutable() < $generated_dates[1]?->toDateTimeImmutable()) {
-        return [$databases[1], $databases[0]];
+    
+    $illuminate_config = [
+        'driver' => 'mysql',
+        'host' => $config->mysqlHost,
+        'database' => $config->databaseName,
+        'username' => $config->mysqlUsername,
+        'password' => $config->mysqlPassword,
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_unicode_ci',
+        'prefix' => '',
+    ];
+    $result['mysql'] = $illuminate_config;
+    $illuminate_config['database'] = $config->alternativeDatabaseName;
+    $result['mysql_alternative'] = $illuminate_config;
+    return $result;
+}
+
+function get_capsule() : Manager {
+    $capsule = new Manager();
+    foreach (get_database_config() as $name => $illuminate_config) {
+        $capsule->addConnection($illuminate_config, $name);
+        $capsule->getConnection($name)->enableQueryLog();
     }
-    return $databases;
+    return $capsule;
+}
+
+function get_generated_date(Connection $connection) : ?Date {
+    try {
+        $result = $connection
+            ->table('import')
+            ->orderByDesc('id')
+            ->first()?->generated_date;
+    } catch (QueryException) {
+        $result = null;
+    }
+    if ($result !== null) {
+        return Date::fromDateTimeInterface(new \Safe\DateTimeImmutable($result));
+    }
+    return null;
 }
 
 function get_container() : ContainerInterface {
@@ -61,20 +91,9 @@ function get_container() : ContainerInterface {
     if ($container === null) {
         $container = (new ContainerBuilder())->addDefinitions(
             [
-                Client::class => static function(ContainerInterface $container) : Client {
-                    $config = $container->get(Config::class);
-                    return new Client(uri: $config->mongodbUri ?? 'mongodb://127.0.0.1/', uriOptions: $config->mongodbUriOptions ?? [], driverOptions: ['typeMap' => ['array' => 'array']]);
-                },
                 Config::class => static fn() : Config => require __DIR__ . '/config.php',
-                Database::class => static function() {
-                    return get_databases()[0];
-                },
-                CacheInterface::class => 
+                CacheInterface::class =>
                     static fn() => new Psr16Cache(new PhpFilesAdapter('', 0, __DIR__ . '/var/cache', true)),
-                LocationRepositoryInterface::class => autowire(MongodbLocationRepository::class),
-                ServiceRepositoryFactoryInterface::class => 
-                    static fn(ContainerInterface $container) => new MongodbServiceRepositoryFactory($container->get(Database::class), $container->get(CacheInterface::class)),
-                FixedLinkRepositoryInterface::class => autowire(MongodbFixedLinkRepository::class),
                 ViewResponseFactoryInterface::class => autowire(ViewResponseFactory::class),
                 ResponseFactoryInterface::class => autowire(ResponseFactory::class),
                 StreamFactoryInterface::class => autowire(StreamFactory::class),
@@ -87,6 +106,15 @@ function get_container() : ContainerInterface {
 
 function is_development() : bool {
     return $_SERVER['SERVER_NAME'] === 'gbtt.localhost';
+}
+
+function last_updated(Date $date = null) : ?Date {
+    static $last_updated = null;
+    $result = $last_updated;
+    if ($date !== null) {
+        $last_updated = $date;
+    }
+    return $result;
 }
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -115,3 +143,4 @@ set_time_limit(300);
 ini_set('memory_limit', '4G');
 date_default_timezone_set('Europe/London');
 umask(0o002);
+last_updated(initialise_database());

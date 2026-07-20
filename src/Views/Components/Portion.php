@@ -1,52 +1,48 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views\Components;
+namespace Miklcct\NationalRailTimetable\Views\Components;
 
 use DateInterval;
 use DateTimeImmutable;
-use Metroapps\NationalRailTimetable\Controllers\BoardQuery;
-use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\DatedService;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
-use Miklcct\RailOpenTimetableData\Models\Points\HasArrival;
-use Miklcct\RailOpenTimetableData\Models\Points\HasDeparture;
-use Miklcct\RailOpenTimetableData\Models\Points\TimingPoint;
-use Miklcct\RailOpenTimetableData\Models\Service;
-use Miklcct\RailOpenTimetableData\Models\Station;
-use Metroapps\NationalRailTimetable\Views\ViewMode;
+use Miklcct\NationalRailTimetable\Controllers\BoardQuery;
+use Miklcct\NationalRailTimetable\DomainModels\Points\TimingPoint;
+use Miklcct\NationalRailTimetable\DomainModels\Service;
+use Miklcct\NationalRailTimetable\Enums\TimeType;
+use Miklcct\NationalRailTimetable\Models\Location;
+use Miklcct\NationalRailTimetable\Models\PhysicalStation;
+use Miklcct\NationalRailTimetable\ValueObjects\Date;
+use Miklcct\NationalRailTimetable\Views\ViewMode;
 use Miklcct\ThinPhpApp\View\PhpTemplate;
 use Psr\Http\Message\StreamFactoryInterface;
-use RuntimeException;
-use function Metroapps\NationalRailTimetable\Views\show_time;
+use function Miklcct\NationalRailTimetable\Views\get_tiploc_data;
+use function Miklcct\NationalRailTimetable\Views\show_time;
 
 class Portion extends PhpTemplate {
-
     /**
      * @param StreamFactoryInterface $streamFactory
      * @param Date $dateFromOrigin
-     * @param DatedService $datedService
-     * @param TimingPoint[] $points
+     * @param Service $portion
      * @param bool $permanentOnly
+     * @param ViewMode $fromViewMode
      */
     public function __construct(
         StreamFactoryInterface $streamFactory
         , protected readonly Date $dateFromOrigin
-        , protected readonly DatedService $datedService
-        , protected readonly array $points
+        , protected readonly Service $portion
         , protected readonly bool $permanentOnly
         , protected readonly ViewMode $fromViewMode
     ) {
         parent::__construct($streamFactory);
         $line = [];
-        $this->tiplocData = self::getTiplocData();
+        $points = $this->portion->timingPoints;
         foreach ($points as $point) {
             if ($point instanceof TimingPoint) {
-                $tiploc = $point->location->tiploc;
-                $tiploc_row = $this->tiplocData[$tiploc] ?? null;
+                $tiploc = $point->location->tiploc_code;
+                $tiploc_row = get_tiploc_data()[$tiploc] ?? null;
                 if ($tiploc_row !== null && $tiploc_row["easting"] !== null && $tiploc_row["northing"] !== null) {
                     $line[] = [$tiploc_row["easting"], $tiploc_row["northing"]];
-                } elseif ($point->location instanceof Station) {
+                } elseif ($point->location instanceof PhysicalStation) {
                     $line[] = [$point->location->easting, $point->location->northing];
                 }
             }
@@ -58,31 +54,24 @@ class Portion extends PhpTemplate {
         return __DIR__ . '/../../../resource/templates/portion.phtml';
     }
 
-    protected function showTime(TimingPoint $point, bool $departure_to_arrival_board) : string {
-        $time = $departure_to_arrival_board
-            ? ($point instanceof HasDeparture ? $point->getPublicDeparture() : null)
-            : ($point instanceof HasArrival ? $point->getPublicArrival() : null);
+    protected function showTime(TimingPoint $point, TimeType $timeType) : string {
+        $time = $point->getTime($timeType);
         if ($time === null) {
             return '';
         }
+        $date_time = $this->portion->date->toDateTimeImmutable($time, $this->portion->getAbsoluteTimeZone());
         return show_time(
-            $this->datedService->date->toDateTimeImmutable($time, $this->datedService->getAbsoluteTimeZone())
+            $date_time
             , $this->dateFromOrigin
-            , $point->location instanceof LocationWithCrs
-            ? $this->getBoardLink(
-                $this->datedService->date->toDateTimeImmutable($time, $this->datedService->getAbsoluteTimeZone())
+            , $this->getBoardLink(
+                $date_time
                 , $point->location
-                , $departure_to_arrival_board
+                , $timeType === TimeType::WORKING_DEPARTURE || $timeType === TimeType::PUBLIC_DEPARTURE
             )
-            : null
         );
     }
 
-    private function getBoardLink(DateTimeImmutable $timestamp, LocationWithCrs $location, bool $arrival_mode) : ?string {
-        $service = $this->datedService->service;
-        if (!$service instanceof Service) {
-            throw new RuntimeException('Service must be a service.');
-        }
+    private function getBoardLink(DateTimeImmutable $timestamp, Location $location, bool $arrival_mode) : ?string {
         return (
             new BoardQuery(
                 $arrival_mode
@@ -92,30 +81,11 @@ class Portion extends PhpTemplate {
                 , Date::fromDateTimeInterface($timestamp->sub(new DateInterval($arrival_mode ? 'PT4H30M' : 'P0D')))
                 , null
                 , $timestamp
-                , $service->toc
+                , $this->portion->toc
                 , $this->permanentOnly
             )
         )->getUrl($this->fromViewMode->getUrl());
     }
-
-    private static function getTiplocData() : array {
-        $csv = array_map("str_getcsv", file(__DIR__ . '/../../../resource/tiplocs-merged.csv', FILE_SKIP_EMPTY_LINES));
-        $keys = array_shift($csv);
-        foreach ($csv as $i=>$row) {
-            $combined = array_combine($keys, $row);
-            foreach (["stop_lon" => "float", "stop_lat" => "float", "easting" => "int", "northing" => "int"] as $key => $type) {
-                if ($combined[$key] === "") {
-                    $combined[$key] = null;
-                } else {
-                    settype($combined[$key], $type);
-                }
-            }
-            $csv[$combined["stop_id"]] = $combined;
-        }
-        return $csv;
-    }
-
-    protected readonly array $tiplocData;
 
     /** @var int[][] */
     protected readonly array $line;

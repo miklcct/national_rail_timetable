@@ -1,10 +1,10 @@
 <?php
 declare(strict_types = 1);
 
-use Miklcct\RailOpenTimetableData\Models\Station;
-use Metroapps\NationalRailTimetable\Views\Components\Form;
-use Metroapps\NationalRailTimetable\Views\ViewMode;
-use function Miklcct\RailOpenTimetableData\get_all_tocs;
+use Miklcct\NationalRailTimetable\Models\PhysicalStation;
+use Miklcct\NationalRailTimetable\Views\Components\Form;
+use Miklcct\NationalRailTimetable\Views\ViewMode;
+use function Miklcct\NationalRailTimetable\Views\get_all_tocs;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
 ?>
@@ -31,11 +31,11 @@ if ($this->errorMessage !== null) {
     <datalist id="stations">
 <?php
 foreach ($this->stations as $station) {
-    $easting_northing = $station instanceof Station
+    $easting_northing = $station instanceof PhysicalStation
         ? sprintf('data-easting="%d" data-northing="%d"', $station->easting, $station->northing)
         : '';
 ?>
-        <option <?= $easting_northing ?> data-name="<?= html($station->name) ?>" value="<?= html($station->getCrsCode()) ?>"><?= html($station->name) ?></option>
+        <option <?= $easting_northing ?> data-name="<?= html($station->station_name) ?>" value="<?= html($station->crs_code) ?>"><?= html($station->station_name) ?></option>
 <?php
 }
 ?>

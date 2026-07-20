@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views;
+namespace Miklcct\NationalRailTimetable\Views;
 
-use Metroapps\NationalRailTimetable\Controllers\BoardController;
-use Metroapps\NationalRailTimetable\Controllers\TimetableController;
+use Miklcct\NationalRailTimetable\Controllers\BoardController;
+use Miklcct\NationalRailTimetable\Controllers\TimetableController;
 
 enum ViewMode {
     case BOARD;

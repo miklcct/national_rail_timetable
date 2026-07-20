@@ -3,11 +3,12 @@
 
 declare(strict_types = 1);
 
-use Metroapps\NationalRailTimetable\Config\Config;
+use Miklcct\NationalRailTimetable\Config\Config;
 
 return new Config(
-    null
-    , null
+    'localhost'
+    , 'national_rail'
+    , 'national_rail'
     , 'national_rail'
     , 'national_rail_new'
     , 'GBTT.uk'

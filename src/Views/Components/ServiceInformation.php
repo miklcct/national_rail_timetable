@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views\Components;
+namespace Miklcct\NationalRailTimetable\Views\Components;
 
-use Miklcct\RailOpenTimetableData\Models\Service;
-use Miklcct\RailOpenTimetableData\Models\ServiceProperty;
+use Miklcct\NationalRailTimetable\DomainModels\Service;
+use Miklcct\NationalRailTimetable\DomainModels\ServiceProperty;
 use Miklcct\ThinPhpApp\View\PhpTemplate;
 use Psr\Http\Message\StreamFactoryInterface;
 use function Miklcct\ThinPhpApp\Escaper\html;

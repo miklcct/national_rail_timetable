@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-use Metroapps\NationalRailTimetable\Views\Components\FixedLink;
-use function Metroapps\NationalRailTimetable\Views\show_time;
+use Miklcct\NationalRailTimetable\Views\Components\FixedLink;
+use function Miklcct\NationalRailTimetable\Views\show_time;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
 /** @var FixedLink $this */
@@ -48,17 +48,21 @@ if (!empty($this->fixedLinks)) {
                 : $fixed_link_time;
             $arrival_time = $link->getArrivalTime($departure_time, $query->arrivalMode);
         }
+        $target = $query->arrivalMode ? $link->originStation : $link->destinationStation;
+        if ($target === null) {
+            continue;
+        }
 ?>
         <tr>
             <td class="destination">
                 <a href="<?= html($this->getUrl($link, $departure_time ?? null)) ?>">
-                    <?= html(($query->arrivalMode ? $link->origin : $link->destination)->getShortName()) ?>
+                    <?= html($target->getShortName()) ?>
                 </a>
             </td>
             <td><?= html($link->mode) ?></td>
-            <td><?= html($link->startTime) ?></td>
-            <td><?= html($link->endTime) ?></td>
-            <td><?= html($link->transferTime) ?></td>
+            <td><?= html($link->start_time) ?></td>
+            <td><?= html($link->end_time) ?></td>
+            <td><?= html($link->duration) ?></td>
             <?php
             if ($fixed_link_time !== null) {
                 ?>

@@ -1,42 +1,78 @@
 <?php
 declare(strict_types=1);
 
-use Metroapps\NationalRailTimetable\Views\Components\AllPortions;
-use Metroapps\NationalRailTimetable\Views\Components\Portion;
+use Miklcct\NationalRailTimetable\Views\Components\AllPortions;
+use Miklcct\NationalRailTimetable\Views\Components\Portion;
 
 /** @var AllPortions $this */
+
+$joins = $this->service->joins;
+$divides = $this->service->divides;
 ?>
 <table class="portion">
 <?php
-foreach ($this->portions as $segment) {
+if ($joins) {
 ?>
     <tr>
         <td>
             <table class="portion">
                 <tr>
 <?php
-    foreach ($segment as $i => $portion) {
+    foreach ($joins as $i => $portion) {
 ?>
                     <td>
 <?php
-        if ($i === 0) {
-            echo new Portion(
-                $this->getStreamFactory()
-                , $this->dateFromOrigin
-                , $portion['dated_service']
-                , array_diff_key($portion, ['dated_service' => null])
-                , $this->permanentOnly
-                , $this->fromViewMode
-            );
-        } else {
-            echo new AllPortions(
-                $this->getStreamFactory()
-                , $this->dateFromOrigin
-                , $portion
-                , $this->permanentOnly
-                , $this->fromViewMode
-            );
-        }
+        echo new AllPortions(
+            $this->getStreamFactory()
+            , $this->dateFromOrigin
+            , $portion
+            , $this->permanentOnly
+            , $this->fromViewMode
+        );
+?>
+                    </td>
+<?php
+    }
+?>
+                </tr>
+            </table>
+        </td>
+    </tr>
+<?php
+}
+?>
+    <tr>
+        <td>
+<?php
+echo new Portion(
+    $this->getStreamFactory()
+    , $this->dateFromOrigin
+    , $this->service
+    , $this->permanentOnly
+    , $this->fromViewMode
+);
+?>
+        </td>
+    </tr>
+<?php
+if ($divides) {
+?>
+    <tr>
+        <td>
+            <table class="portion">
+                <tr>
+<?php
+    foreach ($divides as $i => $portion) {
+?>
+                    <td>
+<?php
+        echo new AllPortions(
+            $this->getStreamFactory()
+            , $this->dateFromOrigin
+            , $portion
+            , $this->permanentOnly
+            , $this->fromViewMode
+        );
 ?>
                     </td>
 <?php
@@ -50,4 +86,3 @@ foreach ($this->portions as $segment) {
 }
 ?>
 </table>
-<?php

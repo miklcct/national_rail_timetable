@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Exceptions;
+namespace Miklcct\NationalRailTimetable\Exceptions;
 
 use Teapot\HttpException;
 use Teapot\StatusCode\Http;

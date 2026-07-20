@@ -1,24 +1,26 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Controllers;
+namespace Miklcct\NationalRailTimetable\Controllers;
 
 use DateInterval;
 use DateTimeImmutable;
-use Metroapps\NationalRailTimetable\Exceptions\StationNotFound;
-use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
-use Miklcct\RailOpenTimetableData\Models\Station;
-use Miklcct\RailOpenTimetableData\Repositories\LocationRepositoryInterface;
+use Illuminate\Database\Eloquent\Collection;
+use Miklcct\NationalRailTimetable\Exceptions\AmbiguousStation;
+use Miklcct\NationalRailTimetable\Exceptions\StationNotFound;
+use Miklcct\NationalRailTimetable\Models\Location;
+use Miklcct\NationalRailTimetable\Models\PhysicalStation;
+use Miklcct\NationalRailTimetable\Models\Tiploc;
+use Miklcct\NationalRailTimetable\ValueObjects\Date;
 use function array_filter;
 use function array_map;
 
 class BoardQuery {
     /**
      * @param bool $arrivalMode
-     * @param LocationWithCrs|null $station
-     * @param LocationWithCrs[] $filter
-     * @param LocationWithCrs[] $inverseFilter
+     * @param Location|null $station
+     * @param Location[] $filter
+     * @param Location[] $inverseFilter
      * @param Date|null $date
      * @param DateTimeImmutable|null $connectingTime
      * @param string|null $connectingToc
@@ -26,7 +28,7 @@ class BoardQuery {
      */
     final public function __construct(
         public readonly bool $arrivalMode = false
-        , public readonly ?LocationWithCrs $station = null
+        , public readonly ?Location $station = null
         , public readonly array $filter = []
         , public readonly array $inverseFilter = []
         , public readonly ?Date $date = null
@@ -37,16 +39,16 @@ class BoardQuery {
         , public readonly array $otherQueryArguments = []
     ) {}
 
-    public static function fromArray(array $query, LocationRepositoryInterface $location_repository) : static {
+    public static function fromArray(array $query) : static {
         return new static(
             ($query['mode'] ?? '') === 'arrivals'
-            , empty($query['station']) ? null : static::getQueryStation($query['station'], $location_repository)
+            , empty($query['station']) ? null : static::getQueryStation($query['station'])
             , array_map(
-                static fn(string $string) => static::getQueryStation($string, $location_repository)
+                static fn(string $string) => static::getQueryStation($string)
                 , array_values(array_filter((array)($query['filter'] ?? [])))
             )
             , array_map(
-                static fn(string $string) => static::getQueryStation($string, $location_repository)
+                static fn(string $string) => static::getQueryStation($string)
                 , array_values(array_filter((array)($query['inverse_filter'] ?? [])))
             )
             , empty($query['date']) ? null : Date::fromDateTimeInterface(new \Safe\DateTimeImmutable($query['date']))
@@ -71,13 +73,13 @@ class BoardQuery {
         return $filter(
             [
                 'mode' => $this->arrivalMode ? 'arrivals' : '',
-                'station' => $this->station?->getCrsCode(),
+                'station' => $this->station?->getCrsOrTiplocCode(),
                 'filter' => array_map(
-                    static fn(LocationWithCrs $location) => $location->getCrsCode()
+                    static fn(Location $location) => $location->getCrsOrTiplocCode()
                     , $this->filter
                 ),
                 'inverse_filter' => array_map(
-                    static fn(LocationWithCrs $location) => $location->getCrsCode()
+                    static fn(Location $location) => $location->getCrsOrTiplocCode()
                     , $this->inverseFilter
                 ),
                 'date' => $this->date?->__toString() ?? '',
@@ -104,24 +106,37 @@ class BoardQuery {
     }
 
     public function getFixedLinkDepartureTime() : ?DateTimeImmutable {
-        return isset($this->connectingTime) && $this->station instanceof Station
+        return isset($this->connectingTime) && $this->station instanceof PhysicalStation
             ? $this->arrivalMode
                 ? $this->connectingTime->sub(
-                    new DateInterval(sprintf('PT%dM', $this->station->minimumConnectionTime))
+                    new DateInterval(sprintf('PT%dM', $this->station->minimum_change_time))
                 )
                 : $this->connectingTime->add(
-                    new DateInterval(sprintf('PT%dM', $this->station->minimumConnectionTime))
+                    new DateInterval(sprintf('PT%dM', $this->station->minimum_change_time))
                 )
             : null;
     }
 
-    private static function getQueryStation(string $name_or_crs, LocationRepositoryInterface $location_repository) : ?LocationWithCrs {
+    private static function getQueryStation(string $name_or_crs) : ?Location {
         if ($name_or_crs === '') {
             return null;
         }
-        $station = $location_repository->getLocationByCrs($name_or_crs)
-            ?? $location_repository->getLocationByName($name_or_crs);
-        if (!$station instanceof LocationWithCrs) {
+        $name_or_crs = substr($name_or_crs, 0, 26);
+        $station = PhysicalStation::where('station_name', $name_or_crs)->orWhere('tiploc_code', $name_or_crs)->orWhere('crs_code', $name_or_crs)->orWhere('crs_reference_code', $name_or_crs)->first();
+        if ($station === null) {
+            /** @var Collection $stations */
+            $stations = PhysicalStation::whereLike('station_name', "$name_or_crs (%")->get();
+            if ($stations->count() > 1) {
+                throw new AmbiguousStation($name_or_crs, array_map(fn($station) => $station->station_name, $stations->all()));
+            }
+            $station = $stations->first();
+        }
+
+        if ($station === null) {
+            $station = Tiploc::where('description', $name_or_crs)->orWhere('tps_description', $name_or_crs)->orWhere('tiploc_code', $name_or_crs)->orWhere('crs_code', $name_or_crs)->first();
+        }
+
+        if ($station === null) {
             throw new StationNotFound($name_or_crs);
         }
         return $station;

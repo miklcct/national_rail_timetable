@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-use Metroapps\NationalRailTimetable\Views\Components\Footer;
-use Metroapps\NationalRailTimetable\Views\Components\Form;
-use Metroapps\NationalRailTimetable\Views\ScheduleFormView;
-use function Metroapps\NationalRailTimetable\Views\show_script_tags;
+use Miklcct\NationalRailTimetable\Views\Components\Footer;
+use Miklcct\NationalRailTimetable\Views\Components\Form;
+use Miklcct\NationalRailTimetable\Views\ScheduleFormView;
+use function Miklcct\NationalRailTimetable\Views\show_script_tags;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
 /** @var ScheduleFormView $this */
@@ -35,6 +35,6 @@ echo new Form($this->getStreamFactory(), $this->stations, $this->getViewMode(), 
             <p>Click a station in the map to fill in the station field:</p>
             <div id="map"></div>
         </main>
-<?php echo new Footer($this->getStreamFactory(), $this->generated); ?>
+<?php echo new Footer($this->getStreamFactory()); ?>
     </body>
 </html>

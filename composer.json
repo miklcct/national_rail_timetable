@@ -4,10 +4,8 @@
     "type" : "project",
     "license" : "AGPL-3.0-or-later",
     "require" : {
-        "php" : "^8.1",
+        "php" : "^8.2",
         "thecodingmachine/safe": "^2.1",
-        "mongodb/mongodb": "^1.12",
-        "ext-mongodb" : "*",
         "miklcct/thin_php_app": "^0.6.1",
         "guzzlehttp/guzzle": "^7.5",
         "http-interop/http-factory-guzzle": "^1.2",
@@ -15,14 +13,14 @@
         "psr/simple-cache": "^1.0",
         "symfony/cache": "^6.1",
         "filp/whoops": "^2.14",
-        "miklcct/rail_open_timetable_data": "^1.6.0"
+        "illuminate/database": "^12.64"
     },
     "require-dev" : {
         "roave/security-advisories" : "dev-latest"
     },
     "autoload" : {
         "psr-4" : {
-            "Metroapps\\NationalRailTimetable\\" : "src/"
+            "Miklcct\\NationalRailTimetable\\" : "src/"
         },
         "files" : [
             "src/Views/functions.php"

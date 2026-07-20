@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
-use Metroapps\NationalRailTimetable\Views\Components\Footer;
+use Miklcct\NationalRailTimetable\Views\Components\Footer;
 
 /** @var Footer $this */
 ?>
 <footer>
 <?php
-if ($this->generated !== null) {
+if (last_updated() !== null) {
 ?>
     <p>
-        Data updated: <?= $this->generated ?><br/>
+        Data updated: <?= last_updated() ?><br/>
     </p>
 <?php
 }

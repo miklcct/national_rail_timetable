@@ -1,14 +1,13 @@
 <?php
 declare(strict_types=1);
 
-use Metroapps\NationalRailTimetable\Views\ViewMode;
-use Miklcct\RailOpenTimetableData\Models\Station;
-use Metroapps\NationalRailTimetable\Views\Components\FixedLink;
-use Metroapps\NationalRailTimetable\Views\Components\Footer;
-use Metroapps\NationalRailTimetable\Views\Components\Form;
-use Metroapps\NationalRailTimetable\Views\ScheduleView;
-use function Metroapps\NationalRailTimetable\Views\show_script_tags;
-use function Metroapps\NationalRailTimetable\Views\show_toc;
+use Miklcct\NationalRailTimetable\Models\PhysicalStation;
+use Miklcct\NationalRailTimetable\Views\Components\FixedLink;
+use Miklcct\NationalRailTimetable\Views\Components\Footer;
+use Miklcct\NationalRailTimetable\Views\Components\Form;
+use Miklcct\NationalRailTimetable\Views\ScheduleView;
+use function Miklcct\NationalRailTimetable\Views\show_script_tags;
+use function Miklcct\NationalRailTimetable\Views\show_toc;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
 /** @var ScheduleView $this */
@@ -55,12 +54,13 @@ if ($query->permanentOnly) {
 <?php
 }
 $station = $query->station;
-if ($station instanceof Station) {
+if ($station instanceof PhysicalStation) {
+    $toc_interchanges = $station->tocInterchanges->all();
 ?>
         <p class="mct_paragraph">Minimum connection time is <span class="time"><?= html(
-                    $station->minimumConnectionTime . ($station->minimumConnectionTime === 1 ? ' minute' : ' minutes')) ?></span><?= $station->tocConnectionTimes === [] ? '.' : ', with the exception of the following:' ?></p>
+                    $station->minimum_change_time . ($station->minimum_change_time === 1 ? ' minute' : ' minutes')) ?></span><?= $toc_interchanges === [] ? '.' : ', with the exception of the following:' ?></p>
 <?php
-    if ($station->tocConnectionTimes !== []) {
+    if ($toc_interchanges !== []) {
 ?>
         <table>
             <thead>
@@ -68,12 +68,12 @@ if ($station instanceof Station) {
             </thead>
             <tbody>
 <?php
-        foreach ($station->tocConnectionTimes as $entry) {
+        foreach ($toc_interchanges as $entry) {
 ?>
                 <tr>
-                    <td><?= show_toc($entry->arrivingToc) ?></td>
-                    <td><?= show_toc($entry->departingToc) ?></td>
-                    <td><?= html($entry->connectionTime) ?></td>
+                    <td><?= show_toc($entry->from_toc) ?></td>
+                    <td><?= show_toc($entry->to_toc) ?></td>
+                    <td><?= html($entry->time) ?></td>
                 </tr>
 <?php
         }
@@ -88,7 +88,7 @@ echo $this->innerView;
 ?>
         </main>
 <?php
-echo new Footer($this->getStreamFactory(), $this->generated);
+echo new Footer($this->getStreamFactory());
 ?>
     </body>
 </html>

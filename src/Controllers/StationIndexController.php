@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Controllers;
+namespace Miklcct\NationalRailTimetable\Controllers;
 
-use Metroapps\NationalRailTimetable\Views\AllStationsView;
-use Miklcct\RailOpenTimetableData\Models\Station;
+use Miklcct\NationalRailTimetable\Views\AllStationsView;
+use Miklcct\NationalRailTimetable\DomainModels\Station;
 use Miklcct\RailOpenTimetableData\Repositories\LocationRepositoryInterface;
 use Miklcct\ThinPhpApp\Controller\Application;
 use Miklcct\ThinPhpApp\Response\ViewResponseFactoryInterface;

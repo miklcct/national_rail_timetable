@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views\Components;
+namespace Miklcct\NationalRailTimetable\Views\Components;
 
-use Miklcct\RailOpenTimetableData\Models\Date;
-use Metroapps\NationalRailTimetable\Views\ViewMode;
+use Miklcct\NationalRailTimetable\DomainModels\Service;
+use Miklcct\NationalRailTimetable\ValueObjects\Date;
+use Miklcct\NationalRailTimetable\Views\ViewMode;
 use Miklcct\ThinPhpApp\View\PhpTemplate;
 use Psr\Http\Message\StreamFactoryInterface;
 
@@ -12,7 +13,7 @@ class AllPortions extends PhpTemplate {
     public function __construct(
         StreamFactoryInterface $streamFactory
         , protected readonly Date $dateFromOrigin
-        , protected readonly array $portions
+        , protected readonly Service $service
         , protected readonly bool $permanentOnly
         , protected readonly ViewMode $fromViewMode
     ) {
