@@ -29,29 +29,25 @@ use RuntimeException;
 use function Miklcct\NationalRailTimetable\Views\get_all_tocs;
 use function Safe\preg_match as preg_match;
 
-readonly class Service {
-    public array $joins;
-    public array $divides;
+class Service {
+    public readonly array $joins;
+    public readonly array $divides;
 
     public function __construct(
-        public string $uid,
-        public Date $date,
-        public Period $period,
-        public Mode $mode,
-        public ?string $toc,
+        public readonly string $uid,
+        public readonly Date $date,
+        public readonly Period $period,
+        public readonly Mode $mode,
+        public readonly ?string $toc,
         /** @var TimingPoint[] */
-        public array $timingPoints,
-        public ShortTermPlanning $shortTermPlanning,
+        public readonly array $timingPoints,
+        public readonly ShortTermPlanning $shortTermPlanning,
         /** @var Service[] */
         array $joins,
         /** @var Service[] */
         array $divides,
-        public ?Service $divideFrom = null,
-        public ?Service $joinTo = null,
-        /** @var int[][]|null */
-        ?array $line = null,
-        /** @var array<string, int[]>|null */
-        ?array $locationMap = null,
+        public readonly ?Service $divideFrom = null,
+        public readonly ?Service $joinTo = null,
     ) {
         $this->divides = array_map(
             fn(Service $service) => new Service(
@@ -66,8 +62,6 @@ readonly class Service {
                 , $service->divides
                 , $this
                 , $service->joinTo
-                , $service->line
-                , $service->locationMap
             )
             , $divides
         );
@@ -84,43 +78,26 @@ readonly class Service {
                 , $service->divides
                 , $service->divideFrom
                 , $this
-                , $service->line
-                , $service->locationMap
             )
             , $joins
         );
-        if ($line === null) {
-            $line = [];
-            foreach ($timingPoints as $point) {
-                $location = $point->location;
-                $tiploc = $location->tiploc_code;
-                $data = Location::getCoordinates($tiploc);
-                if ($data !== null) {
-                    $line[] = $data;
-                } elseif ($location instanceof PhysicalStation) {
-                    $line[] = [$location->easting, $location->northing];
-                }
+        $line = [];
+        foreach ($timingPoints as $i => $point) {
+            $location = $point->location;
+            $tiploc = $location->tiploc_code;
+            $data = Location::getCoordinates($tiploc);
+            if ($data !== null) {
+                $line[] = $data;
+            } elseif ($location instanceof PhysicalStation) {
+                $line[] = [$location->easting, $location->northing];
             }
+            $this->locationMap[$location->getCrsOrTiplocCode()][] = $i;
         }
-        $this->line = $line;
-
-        if ($locationMap === null) {
-            $locationMap = [];
-            foreach ($timingPoints as $index => $point) {
-                $code = $point->location->getCrsOrTiplocCode();
-                if ($code !== null) {
-                    $locationMap[$code][] = $index;
-                }
-            }
-        }
-        $this->locationMap = $locationMap;
     }
 
-    /** @var array<string, int[]> */
-    private array $locationMap;
-
     /** @var int[][] */
-    public array $line;
+    public readonly array $line;
+    private array $locationMap;
     
     public static function loadFromDatabase(string $uid_or_rsid, Date $date, bool $excludeStp = false, ?string $recursed_from = null) : ?Service {
         static $cache = [];
@@ -251,46 +228,7 @@ readonly class Service {
         ?int $to_index = null,
         array $joins = [],
         array $divides = [],
-        ?array $allTimingPoints = null,
-        ?array $allCoordinates = null,
-        ?array $locationMap = null
     ) : Service {
-        static $timingPointsCache = [];
-        $scheduleKey = $schedule->getTable() . ':' . $schedule->getKey();
-        if ($allTimingPoints === null && isset($timingPointsCache[$scheduleKey])) {
-            [$allTimingPoints, $allCoordinates, $locationMap] = $timingPointsCache[$scheduleKey];
-        }
-        if ($allTimingPoints === null) {
-            $allTimingPoints = [];
-            $allCoordinates = [];
-            $locationMap = [];
-            $lastTimingPoint = null;
-            $serviceProperty = $schedule->getServiceProperty();
-            foreach ($schedule->stopTimes as $i => $stopTime) {
-                if ($stopTime instanceof StopTime && $stopTime->serviceChange !== null) {
-                    $serviceProperty = $stopTime->serviceChange->getServiceProperty();
-                }
-                $timingPoint = $stopTime->toDomainModel($serviceProperty, $lastTimingPoint);
-                $allTimingPoints[] = $timingPoint;
-                $lastTimingPoint = $timingPoint;
-
-                $location = $timingPoint->location;
-                $tiploc = $location->tiploc_code;
-                $data = Location::getCoordinates($tiploc);
-                if ($data !== null) {
-                    $allCoordinates[$i] = $data;
-                } elseif ($location instanceof PhysicalStation) {
-                    $allCoordinates[$i] = [$location->easting, $location->northing];
-                }
-
-                $code = $location->getCrsOrTiplocCode();
-                if ($code !== null) {
-                    $locationMap[$code][] = $i;
-                }
-            }
-            $timingPointsCache[$scheduleKey] = [$allTimingPoints, $allCoordinates, $locationMap];
-        }
-
         ksort($associations);
         $get_child = fn(array $data) => $data[1];
 
@@ -303,38 +241,43 @@ readonly class Service {
                 }
                 if ($joins) {
                     return self::fromSchedule($schedule, $date, $excludeStp, $associations, $assoc_index, $to_index, [
-                        self::fromSchedule($schedule, $date, $excludeStp, $associations, $from_index, $assoc_index, [], [], $allTimingPoints, $allCoordinates),
+                        self::fromSchedule($schedule, $date, $excludeStp, $associations, $from_index, $assoc_index),
                         ...$joins,
-                    ], [], $allTimingPoints, $allCoordinates);
+                    ]);
                 }
                 if ($divides) {
                     return self::fromSchedule($schedule, $date, $excludeStp, $associations, $from_index, $assoc_index, [], [
-                        self::fromSchedule($schedule, $date, $excludeStp, $associations, $assoc_index, $to_index, [], [], $allTimingPoints, $allCoordinates),
+                        self::fromSchedule($schedule, $date, $excludeStp, $associations, $assoc_index, $to_index),
                         ...$divides,
-                    ], $allTimingPoints, $allCoordinates);
+                    ]);
                 }
             }
         }
 
+        $lastTimingPoint = null;
+        $serviceProperty = $schedule->getServiceProperty();
+        $from_index ??= 0;
+        $to_index ??= count($schedule->stopTimes) - 1;
         $timingPoints = [];
-        $line = [];
-        $from_index_val = $from_index ?? 0;
-        $to_index_val = $to_index ?? count($allTimingPoints) - 1;
-        for ($i = $from_index_val; $i <= $to_index_val; ++$i) {
-            $timingPoint = $allTimingPoints[$i];
-            if ($i === $from_index_val && !($timingPoint instanceof OriginPoint)) {
+        foreach ($schedule->stopTimes as $i => $stopTime) {
+            if ($stopTime instanceof StopTime && $stopTime->serviceChange !== null) {
+                $serviceProperty = $stopTime->serviceChange->getServiceProperty();
+            }
+            $timingPoint = $stopTime->toDomainModel($serviceProperty, $lastTimingPoint);
+            if ($i === $from_index && !$timingPoint instanceof OriginPoint) {
                 assert($timingPoint instanceof CallingPoint);
                 $timingPoint = new OriginPoint($timingPoint->location, $timingPoint->locationSuffix, $timingPoint->platform, $timingPoint->line, $timingPoint->workingDeparture, $timingPoint->publicDeparture, $timingPoint->engineeringAllowance, $timingPoint->pathingAllowance, $timingPoint->performanceAllowance, $timingPoint->activities, $timingPoint->serviceProperty);
             }
-            if ($i === $to_index_val && !($timingPoint instanceof DestinationPoint)) {
+            if ($i === $to_index && !$timingPoint instanceof DestinationPoint) {
                 assert($timingPoint instanceof CallingPoint);
                 $timingPoint = new DestinationPoint($timingPoint->location, $timingPoint->locationSuffix, $timingPoint->platform, $timingPoint->path, $timingPoint->workingArrival, $timingPoint->publicArrival, $timingPoint->activities);
             }
-            $timingPoints[] = $timingPoint;
-            if (isset($allCoordinates[$i])) {
-                $line[] = $allCoordinates[$i];
+            if ($i >= $from_index && $i <= $to_index) {
+                $timingPoints[] = $timingPoint;
             }
+            $lastTimingPoint = $timingPoint;
         }
+
         return new Service(
             $schedule->train_uid,
             $date,
@@ -345,8 +288,6 @@ readonly class Service {
             $schedule->stp_indicator,
             $joins,
             $divides,
-            line: $line,
-            locationMap: ($from_index === null && $to_index === null) ? $locationMap : null
         );
     }
 
