@@ -222,7 +222,6 @@ class Service {
     private static function fromSchedule(
         BaseSchedule $schedule,
         Date $date,
-        bool $excludeStp,
         array $associations,
         ?int $from_index = null,
         ?int $to_index = null,
@@ -240,14 +239,14 @@ class Service {
                     throw new RuntimeException("This application currently doesn't support joins and divides simultaneously at the same location.");
                 }
                 if ($joins) {
-                    return self::fromSchedule($schedule, $date, $excludeStp, $associations, $assoc_index, $to_index, [
-                        self::fromSchedule($schedule, $date, $excludeStp, $associations, $from_index, $assoc_index),
+                    return self::fromSchedule($schedule, $date, $associations, $assoc_index, $to_index, [
+                        self::fromSchedule($schedule, $date, $associations, $from_index, $assoc_index),
                         ...$joins,
                     ]);
                 }
                 if ($divides) {
-                    return self::fromSchedule($schedule, $date, $excludeStp, $associations, $from_index, $assoc_index, [], [
-                        self::fromSchedule($schedule, $date, $excludeStp, $associations, $assoc_index, $to_index),
+                    return self::fromSchedule($schedule, $date, $associations, $from_index, $assoc_index, [], [
+                        self::fromSchedule($schedule, $date, $associations, $assoc_index, $to_index),
                         ...$divides,
                     ]);
                 }
@@ -406,6 +405,6 @@ class Service {
             }
         }
 
-        return $cache[$cache_key] = self::fromSchedule($schedule, $date, $exclude_stp, $associations);
+        return $cache[$cache_key] = self::fromSchedule($schedule, $date, $associations);
     }
 }
