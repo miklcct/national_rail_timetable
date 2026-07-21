@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views;
+namespace Miklcct\NationalRailTimetable\Views;
 
 use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
+use Miklcct\RailOpenTimetableData\Models\Location;
 use Psr\Http\Message\StreamFactoryInterface;
 
 class ScheduleFormView extends ScheduleBaseView {
     /**
      * @param StreamFactoryInterface $streamFactory
-     * @param LocationWithCrs[] $stations
+     * @param Location[] $stations
      * @param string|null $errorMessage
      */
     public function __construct(

@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views\Components;
+namespace Miklcct\NationalRailTimetable\Views\Components;
 
 use DateInterval;
 use DateTimeImmutable;
-use Metroapps\NationalRailTimetable\Controllers\BoardQuery;
+use Miklcct\NationalRailTimetable\Controllers\BoardQuery;
 use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\RailOpenTimetableData\Models\FixedLink as Model;
 use Miklcct\ThinPhpApp\View\PhpTemplate;

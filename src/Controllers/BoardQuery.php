@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Controllers;
+namespace Miklcct\NationalRailTimetable\Controllers;
 
 use DateInterval;
 use DateTimeImmutable;
-use Metroapps\NationalRailTimetable\Exceptions\StationNotFound;
+use Miklcct\NationalRailTimetable\Exceptions\StationNotFound;
 use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
+use Miklcct\RailOpenTimetableData\Models\Location;
 use Miklcct\RailOpenTimetableData\Models\Station;
 use Miklcct\RailOpenTimetableData\Repositories\LocationRepositoryInterface;
 use function array_filter;
@@ -16,17 +16,19 @@ use function array_map;
 class BoardQuery {
     /**
      * @param bool $arrivalMode
-     * @param LocationWithCrs|null $station
-     * @param LocationWithCrs[] $filter
-     * @param LocationWithCrs[] $inverseFilter
+     * @param Location|null $station
+     * @param Location[] $filter
+     * @param Location[] $inverseFilter
      * @param Date|null $date
+     * @param array|null $toc
      * @param DateTimeImmutable|null $connectingTime
      * @param string|null $connectingToc
      * @param bool $permanentOnly
+     * @param array $otherQueryArguments
      */
     final public function __construct(
         public readonly bool $arrivalMode = false
-        , public readonly ?LocationWithCrs $station = null
+        , public readonly ?Location $station = null
         , public readonly array $filter = []
         , public readonly array $inverseFilter = []
         , public readonly ?Date $date = null
@@ -71,13 +73,13 @@ class BoardQuery {
         return $filter(
             [
                 'mode' => $this->arrivalMode ? 'arrivals' : '',
-                'station' => $this->station?->getCrsCode(),
+                'station' => $this->station?->getCrsOrTiplocCode(),
                 'filter' => array_map(
-                    static fn(LocationWithCrs $location) => $location->getCrsCode()
+                    static fn(Location $location) => $location->getCrsOrTiplocCode()
                     , $this->filter
                 ),
                 'inverse_filter' => array_map(
-                    static fn(LocationWithCrs $location) => $location->getCrsCode()
+                    static fn(Location $location) => $location->getCrsOrTiplocCode()
                     , $this->inverseFilter
                 ),
                 'date' => $this->date?->__toString() ?? '',
@@ -115,13 +117,14 @@ class BoardQuery {
             : null;
     }
 
-    private static function getQueryStation(string $name_or_crs, LocationRepositoryInterface $location_repository) : ?LocationWithCrs {
+    private static function getQueryStation(string $name_or_crs, LocationRepositoryInterface $location_repository) : ?Location {
         if ($name_or_crs === '') {
             return null;
         }
         $station = $location_repository->getLocationByCrs($name_or_crs)
-            ?? $location_repository->getLocationByName($name_or_crs);
-        if (!$station instanceof LocationWithCrs) {
+            ?? $location_repository->getLocationByName($name_or_crs)
+            ?? $location_repository->getLocationByTiploc($name_or_crs);
+        if (!$station instanceof Location) {
             throw new StationNotFound($name_or_crs);
         }
         return $station;

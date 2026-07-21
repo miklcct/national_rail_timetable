@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Middlewares;
+namespace Miklcct\NationalRailTimetable\Middlewares;
 
 use DateTimeZone;
-use Metroapps\NationalRailTimetable\Controllers\BoardQuery;
+use Miklcct\NationalRailTimetable\Controllers\BoardQuery;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;

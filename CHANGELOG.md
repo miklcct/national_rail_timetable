@@ -1,3 +1,7 @@
+## [3.0.0] - 2026-08-05
+* Revert to old namespace as Metroapps no longer exist
+* Update to new backend version for performance improvements
+
 ## [2.7.1] - 2025-11-13
 * Do not show fixed links when filtered by TOC
 

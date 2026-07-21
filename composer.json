@@ -1,12 +1,12 @@
 {
-    "name" : "metroapps/national_rail_timetable",
+    "name" : "miklcct/national_rail_timetable",
     "description" : "National Rail Timetable on the web",
     "type" : "project",
     "license" : "AGPL-3.0-or-later",
     "require" : {
-        "php" : "^8.1",
+        "php" : "^8.4",
         "thecodingmachine/safe": "^2.1",
-        "mongodb/mongodb": "^1.12",
+        "mongodb/mongodb": "^2.0",
         "ext-mongodb" : "*",
         "miklcct/thin_php_app": "^0.6.1",
         "guzzlehttp/guzzle": "^7.5",
@@ -15,17 +15,21 @@
         "psr/simple-cache": "^1.0",
         "symfony/cache": "^6.1",
         "filp/whoops": "^2.14",
-        "miklcct/rail_open_timetable_data": "^1.6.0"
+        "miklcct/rail_open_timetable_data": "^2.0",
+        "monolog/monolog": "^3.10"
     },
     "require-dev" : {
         "roave/security-advisories" : "dev-latest"
     },
     "autoload" : {
         "psr-4" : {
-            "Metroapps\\NationalRailTimetable\\" : "src/"
+            "Miklcct\\NationalRailTimetable\\" : "src/"
         },
         "files" : [
+            "src/helpers.php",
             "src/Views/functions.php"
         ]
-    }
+    },
+    "minimum-stability" : "dev",
+    "prefer-stable" : true
 }

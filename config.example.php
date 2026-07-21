@@ -3,9 +3,9 @@
 
 declare(strict_types = 1);
 
-use Metroapps\NationalRailTimetable\Config\Config;
+use Miklcct\NationalRailTimetable\Config\MongodbConfig;
 
-return new Config(
+return new MongodbConfig(
     null
     , null
     , 'national_rail'

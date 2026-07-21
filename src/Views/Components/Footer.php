@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views\Components;
+namespace Miklcct\NationalRailTimetable\Views\Components;
 
 use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\ThinPhpApp\View\PhpTemplate;

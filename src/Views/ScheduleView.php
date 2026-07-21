@@ -1,17 +1,17 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Views;
+namespace Miklcct\NationalRailTimetable\Views;
 
 use LogicException;
-use Metroapps\NationalRailTimetable\Controllers\BoardController;
-use Metroapps\NationalRailTimetable\Controllers\BoardQuery;
-use Metroapps\NationalRailTimetable\Controllers\TimetableController;
+use Miklcct\NationalRailTimetable\Controllers\BoardController;
+use Miklcct\NationalRailTimetable\Controllers\BoardQuery;
+use Miklcct\NationalRailTimetable\Controllers\TimetableController;
+use Miklcct\NationalRailTimetable\Views\Components\Board;
+use Miklcct\RailOpenTimetableData\DomainModels\DepartureBoard;
 use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\DepartureBoard;
 use Miklcct\RailOpenTimetableData\Models\FixedLink;
 use Miklcct\RailOpenTimetableData\Models\Location;
-use Metroapps\NationalRailTimetable\Views\Components\Board;
 use Miklcct\ThinPhpApp\View\PhpTemplate;
 use Miklcct\ThinPhpApp\View\View;
 use Psr\Http\Message\StreamFactoryInterface;

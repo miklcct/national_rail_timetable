@@ -1,16 +1,17 @@
 <?php
 declare(strict_types = 1);
 
-namespace Metroapps\NationalRailTimetable\Views;
+namespace Miklcct\NationalRailTimetable\Views;
 
 use DateInterval;
 use DateTimeImmutable;
-use Metroapps\NationalRailTimetable\Controllers\BoardQuery;
+use Miklcct\NationalRailTimetable\Controllers\BoardQuery;
 use Miklcct\RailOpenTimetableData\Enums\Activity;
 use Miklcct\RailOpenTimetableData\Enums\Catering;
 use Miklcct\RailOpenTimetableData\Enums\Mode;
 use Miklcct\RailOpenTimetableData\Enums\Reservation;
 use Miklcct\RailOpenTimetableData\Enums\ShortTermPlanning;
+use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
 use Miklcct\RailOpenTimetableData\Models\ServiceCall;
@@ -93,7 +94,7 @@ function show_toc(string $toc) : string {
 
 function show_short_term_planning(ServiceCall $call) : string {
     $description = html(
-        match ($call->shortTermPlanning) {
+        match ($call->service->shortTermPlanning) {
             ShortTermPlanning::PERMANENT => '',
             ShortTermPlanning::NEW => 'Short Term Planned',
             ShortTermPlanning::OVERLAY => 'Overlay',
@@ -101,7 +102,7 @@ function show_short_term_planning(ServiceCall $call) : string {
         }
     );
     $abbreviation = html(
-        match ($call->shortTermPlanning) {
+        match ($call->service->shortTermPlanning) {
             ShortTermPlanning::PERMANENT => '',
             ShortTermPlanning::NEW => 'STP',
             ShortTermPlanning::OVERLAY => 'VAR',
@@ -111,15 +112,15 @@ function show_short_term_planning(ServiceCall $call) : string {
     return "<abbr title=\"$description\">$abbreviation</abbr>";
 }
 
-function show_facilities(ServiceCall $service_call) : string {
-    return show_facility_icon($service_call->mode) . show_service_property_icons($service_call->serviceProperty);
+function show_facilities(Mode $mode, ServiceProperty $service_property) : string {
+    return show_facility_icon($mode) . show_service_property_icons($service_property);
 }
 
 function get_arrival_link(string $url, ServiceCall $service_call, BoardQuery $query) : ?string {
-    $location = $service_call->call->location;
-    if (!$location instanceof LocationWithCrs) {
-        return null;
-    }
+    $location = $service_call->timingPoint->location;
+    $timestamp = $service_call->getTimestamp(
+        $query->arrivalMode ? TimeType::PUBLIC_DEPARTURE : TimeType::PUBLIC_ARRIVAL
+    );
     return (
         new BoardQuery(
             $query->arrivalMode
@@ -127,13 +128,13 @@ function get_arrival_link(string $url, ServiceCall $service_call, BoardQuery $qu
             , []
             , []
             , Date::fromDateTimeInterface(
-                $service_call->timestamp->sub(
+                $timestamp->sub(
                     new DateInterval($query->arrivalMode ? 'PT4H30M' : 'P0D')
                 )
             )
             , null
-            , $service_call->timestamp
-            , $service_call->toc
+            , $timestamp
+            , $service_call->service->toc
             , $query->permanentOnly
         )
     )->getUrl($url);
@@ -171,5 +172,9 @@ function show_service_property_icons(ServiceProperty $service_property) : string
 }
 
 function get_header_classes(ServiceCall $call) {
-    return $call->shortTermPlanning !== ShortTermPlanning::PERMANENT ? 'stp' : '';
+    return $call->service->shortTermPlanning !== ShortTermPlanning::PERMANENT ? 'stp' : '';
+}
+
+function get_service_property(ServiceCall $call, BoardQuery $query) : ServiceProperty {
+    return $call->service->timingPoints[$call->callIndex + ($query->arrivalMode ? -1 : 0)]->serviceProperty;
 }

@@ -1,28 +1,31 @@
 <?php
 declare(strict_types=1);
 
-namespace Metroapps\NationalRailTimetable\Controllers;
+namespace Miklcct\NationalRailTimetable\Controllers;
 
 use GuzzleHttp\Psr7\Response;
-use Metroapps\NationalRailTimetable\Config\Config;
-use Metroapps\NationalRailTimetable\Exceptions\StationNotFound;
-use Metroapps\NationalRailTimetable\Middlewares\CacheMiddleware;
+use Miklcct\NationalRailTimetable\Config\Config;
+use Miklcct\NationalRailTimetable\Exceptions\AmbiguousStation;
+use Miklcct\NationalRailTimetable\Exceptions\StationNotFound;
+use Miklcct\NationalRailTimetable\Middlewares\CacheMiddleware;
+use Miklcct\RailOpenTimetableData\DomainModels\DepartureBoard;
+use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\RailOpenTimetableData\Models\FixedLink;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
+use Miklcct\RailOpenTimetableData\Models\Location;
 use Miklcct\RailOpenTimetableData\Models\Station;
-use Miklcct\RailOpenTimetableData\Repositories\FixedLinkRepositoryInterface;
-use Miklcct\RailOpenTimetableData\Repositories\LocationRepositoryInterface;
-use Miklcct\RailOpenTimetableData\Repositories\ServiceRepositoryFactoryInterface;
-use Metroapps\NationalRailTimetable\Views\ScheduleFormView;
-use Metroapps\NationalRailTimetable\Views\ScheduleView;
-use Metroapps\NationalRailTimetable\Views\ViewMode;
+use Miklcct\RailOpenTimetableData\Models\Time;
+use Miklcct\RailOpenTimetableData\Repositories\RepositoryInterface;
+use Miklcct\NationalRailTimetable\Views\ScheduleFormView;
+use Miklcct\NationalRailTimetable\Views\ScheduleView;
+use Miklcct\NationalRailTimetable\Views\ViewMode;
 use Miklcct\ThinPhpApp\Controller\Application;
 use Miklcct\ThinPhpApp\Response\ViewResponseFactoryInterface;
 use Miklcct\ThinPhpApp\View\View;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\SimpleCache\CacheInterface;
 use Teapot\HttpException;
 use Teapot\StatusCode\Http;
 use Teapot\StatusCode\WebDAV;
@@ -35,12 +38,11 @@ abstract class ScheduleController extends Application {
         protected readonly ViewResponseFactoryInterface $viewResponseFactory
         , protected readonly StreamFactoryInterface $streamFactory
         , private readonly CacheMiddleware $cacheMiddleware
-        , protected readonly ServiceRepositoryFactoryInterface $serviceRepositoryFactory
-        , protected readonly LocationRepositoryInterface $locationRepository
-        , protected readonly FixedLinkRepositoryInterface $fixedLinkRepository
+        , protected readonly RepositoryInterface $repository
         , private readonly Config $config
+        , private readonly CacheInterface $cache
     ) {}
-    abstract protected function getInnerView() : View;
+    abstract protected function getInnerView(Date $date, DepartureBoard $board) : View;
     abstract protected function getViewMode() : ViewMode;
 
     public function getQuery() : BoardQuery {
@@ -65,9 +67,10 @@ abstract class ScheduleController extends Application {
                 $query['filter'][] = $segment;
             }
         }
+        $location_repository = $this->repository->getLocationRepository();
         try {
-            $this->query = BoardQuery::fromArray($query, $this->locationRepository);
-        } catch (StationNotFound $e) {
+            $this->query = BoardQuery::fromArray($query, $location_repository);
+        } catch (StationNotFound|AmbiguousStation $e) {
             return $this->createEmptyFormResponse($e);
         }
 
@@ -86,21 +89,45 @@ abstract class ScheduleController extends Application {
 
 
         $date = $this->query->date ?? Date::today();
-        $service_repository = ($this->serviceRepositoryFactory)($this->query->permanentOnly);
-        $updated = $service_repository->getGeneratedDate();
-        if ($updated !== null && $date->toDateTimeImmutable()->getTimestamp() < $updated->toDateTimeImmutable()->getTimestamp() - 7 * 24 * 60 * 60) {
-            throw new HttpException('The timetable more than a week ago is no longer available.', Http::GONE);
+        $service_repository = $this->repository->getServiceRepository($this->query->permanentOnly);
+        $updated = $this->repository->getGeneratedDate();
+        $from = $date->toDateTimeImmutable();
+        $to = $date->toDateTimeImmutable(new Time(28, 30));
+
+        if ($updated !== null && $from->getTimestamp() < $updated->toDateTimeImmutable()->getTimestamp()) {
+            throw new HttpException('The timetable in the past is no longer available.', Http::GONE);
+        }
+        $time_type = $this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE;
+        $station = $this->query->station;
+
+        $cache_key = sprintf(
+            'board_%s_%s_%012d_%012d_%s_%d%s',
+            $this->repository->getGeneratedDate(),
+            $station->getCrsOrTiplocCode(),
+            $from->getTimestamp(),
+            $to->getTimestamp(),
+            $time_type->value,
+            $this->query->permanentOnly,
+            $this->query->toc === null ? "" : "_" . implode("", $this->query->toc)
+        );
+        $cache_entry = $this->cache?->get($cache_key);
+        if ($cache_entry !== null) {
+            $board = $cache_entry;
+        } else {
+            $board = $service_repository->getDepartureBoard($station, $from, $to, $time_type, $this->query->toc)
+                ->filterByDestination($this->query->filter, $this->query->inverseFilter);
+            $this->cache?->set($cache_key, $board);
         }
         return ($this->viewResponseFactory)(
             new ScheduleView(
                 $this->streamFactory
-                , $this->locationRepository->getAllStations()
+                , $location_repository->getAllStations()
                 , $date
                 , $this->query
                 , $this->getFixedLinks()
-                , $service_repository->getGeneratedDate()
+                , $this->repository->getGeneratedDate()
                 , $this->config->siteName
-                , $this->getInnerView()
+                , $this->getInnerView($date, $board)
             )
         );
     }
@@ -119,12 +146,12 @@ abstract class ScheduleController extends Application {
         $arrival_mode = $this->query->arrivalMode;
         $destinations = $this->query->filter;
         $date = $this->query->date ?? Date::today();
-        foreach ($this->fixedLinkRepository->get($arrival_mode ? null : $station->crsCode, $arrival_mode ? $station->crsCode : null) as $fixed_link) {
+        foreach ($this->repository->getFixedLinkRepository()->get($arrival_mode ? null : $station->crsCode, $arrival_mode ? $station->crsCode : null) as $fixed_link) {
             if (
                 $destinations === [] || in_array(
                     $arrival_mode ? $fixed_link->origin->crsCode : $fixed_link->destination->crsCode
                     , array_map(
-                        static fn(LocationWithCrs $destination) => $destination->getCrsCode()
+                        static fn(Location $destination) => $destination->crsCode
                         , $destinations
                     )
                     , true
@@ -153,11 +180,11 @@ abstract class ScheduleController extends Application {
 
         usort(
             $fixed_links
-            , static fn(FixedLink $a, FixedLink $b) => $a->origin->crsCode === $b->origin->crsCode
-                ? $a->destination->crsCode === $b->destination->crsCode
-                    ? $a->startTime->toHalfMinutes() <=> $b->startTime->toHalfMinutes()
-                    : $a->destination->crsCode <=> $b->destination->crsCode
-                : $a->origin->crsCode <=> $b->origin->crsCode
+            , static fn(FixedLink $a, FixedLink $b) => $a->origin === $b->origin
+                ? $a->destination === $b->destination
+                    ? $a->start_time->secondsFromOrigin <=> $b->start_time->secondsFromOrigin
+                    : $a->destination <=> $b->destination
+                : $a->origin <=> $b->origin
         );
         return $fixed_links;
     }
@@ -166,10 +193,10 @@ abstract class ScheduleController extends Application {
         return ($this->viewResponseFactory)(
             new ScheduleFormView(
                 $this->streamFactory
-                , $this->locationRepository->getAllStations()
+                , $this->repository->getLocationRepository()->getAllStations()
                 , $this->getViewMode()
                 , $this->config->siteName
-                , ($this->serviceRepositoryFactory)()->getGeneratedDate()
+                , $this->repository->getGeneratedDate()
                 , $e?->getMessage()
             )
         )->withStatus($e ? WebDAV::UNPROCESSABLE_ENTITY : Http::OK);
