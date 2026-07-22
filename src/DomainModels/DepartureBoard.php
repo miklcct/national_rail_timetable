@@ -27,7 +27,7 @@ readonly class DepartureBoard {
         $this->callMatrix = $this->buildCallMatrix();
     }
 
-    public static function loadDepartureBoardOfStation(Location $location, Date $date, TimeType $time_type, bool $exclude_stp = false) : DepartureBoard {
+    public static function loadDepartureBoardOfStation(Location $location, Date $date, TimeType $time_type, ?array $tocs, bool $exclude_stp = false) : DepartureBoard {
         $crs = $location instanceof PhysicalStation ? $location->crs_code : null;
         $tiplocs = $location instanceof PhysicalStation ? PhysicalStation::where('crs_code', '=', $location->crs_code)->pluck('tiploc_code') : new Collection($location->tiploc_code);
         $date_and_stp_filter = function (EloquentBuilder $builder) use ($date, $exclude_stp) {
@@ -36,6 +36,11 @@ readonly class DepartureBoard {
         $uids = Schedule::whereHas('stopTimes', function (EloquentBuilder $query) use ($tiplocs) {
             $query->whereIn('location', $tiplocs);
         })
+            ->where(function (EloquentBuilder $query) use ($tocs) {
+                if ($tocs !== null) {
+                    $query->whereIn('atoc_code', $tocs);
+                }
+            })
             ->where($date_and_stp_filter)
             ->distinct()
             ->pluck('train_uid')->union(
@@ -59,6 +64,11 @@ readonly class DepartureBoard {
             ->orderBy('stp_indicator')
             ->get();
         $z_schedules = ZSchedule::whereIn('train_uid', $uids)
+            ->where(function (EloquentBuilder $query) use ($tocs) {
+                if ($tocs !== null) {
+                    $query->whereIn('atoc_code', $tocs);
+                }
+            })
             ->with([
                 'stopTimes' => function ($query) {
                     $query->withoutGlobalScopes();
