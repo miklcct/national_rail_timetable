@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Miklcct\NationalRailTimetable\Config\Config;
 use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\RailOpenTimetableData\Repositories\RepositoryInterface;
+use Psr\SimpleCache\CacheInterface;
 use Safe\DateTimeImmutable;
 use function Miklcct\NationalRailTimetable\show_departure_board;
 use function Safe\getopt;
@@ -27,4 +28,4 @@ $date = Date::fromDateTimeInterface(
 /** @var RepositoryInterface $repository */
 $repository = get_container()->get(Config::class)->getRepository();
 
-show_departure_board($repository, $argv[1], $date, $arrival_mode, array_slice($argv, 2));
+show_departure_board($repository, $argv[1], $date, $arrival_mode, array_slice($argv, 2), [], get_container()->get(CacheInterface::class));

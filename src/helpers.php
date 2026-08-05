@@ -9,16 +9,33 @@ use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\RailOpenTimetableData\Models\Points\TimingPoint;
 use Miklcct\RailOpenTimetableData\Models\Time;
 use Miklcct\RailOpenTimetableData\Repositories\RepositoryInterface;
+use Psr\SimpleCache\CacheInterface;
 
-function show_departure_board(RepositoryInterface $repository, string $station, Date $date, bool $arrival_mode, array $filter = [], array $inverse_filter = []) : void {
+function show_departure_board(RepositoryInterface $repository, string $station, Date $date, bool $arrival_mode, array $filter = [], array $inverse_filter = [], ?CacheInterface $cache = null) : void {
     $time_type = $arrival_mode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE;
     $get_location = $repository->getLocationRepository()->getLocation(...);
+    $location = $get_location($station);
+    $from = $date->toDateTimeImmutable();
+    $to = $date->toDateTimeImmutable(new Time(28, 30));
+
+    $cache_key = sprintf(
+        'board_%s_%s_%012d_%012d_%s_%d%s',
+        $repository->getGeneratedDate(),
+        $location->getCrsOrTiplocCode(),
+        $from->getTimestamp(),
+        $to->getTimestamp(),
+        $time_type->value,
+        false,
+        ""
+    );
+
     $board = $repository->getServiceRepository()->getDepartureBoard(
-        $get_location($station)
-        , $date->toDateTimeImmutable()
-        , $date->toDateTimeImmutable(new Time(28, 30))
+        $location
+        , $from
+        , $to
         , $time_type
     );
+    $cache->set($cache_key, $board);
     
     $board = $board->filterByDestination(array_map($get_location, $filter), array_map($get_location, $inverse_filter));
     
