@@ -1,3 +1,6 @@
+## [3.0.1] - 2026-08-06
+* Fix departure board caching when filtering is involved
+
 ## [3.0.0] - 2026-08-05
 * Revert to old namespace as Metroapps no longer exist
 * Update to new backend version for performance improvements

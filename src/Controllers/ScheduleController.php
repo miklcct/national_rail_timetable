@@ -114,10 +114,10 @@ abstract class ScheduleController extends Application {
         if ($cache_entry !== null) {
             $board = $cache_entry;
         } else {
-            $board = $service_repository->getDepartureBoard($station, $from, $to, $time_type, $this->query->toc)
-                ->filterByDestination($this->query->filter, $this->query->inverseFilter);
+            $board = $service_repository->getDepartureBoard($station, $from, $to, $time_type, $this->query->toc);
             $this->cache?->set($cache_key, $board);
         }
+        $board = $board->filterByDestination($this->query->filter, $this->query->inverseFilter);
         return ($this->viewResponseFactory)(
             new ScheduleView(
                 $this->streamFactory
