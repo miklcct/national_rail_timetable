@@ -60,24 +60,22 @@ class Portion extends PhpTemplate {
             , $this->getBoardLink(
                 $date_time
                 , $point->location
-                , $timeType === TimeType::WORKING_DEPARTURE || $timeType === TimeType::PUBLIC_DEPARTURE
+                , $timeType->getCompanion()
             )
         );
     }
 
-    private function getBoardLink(DateTimeImmutable $timestamp, Location $location, bool $arrival_mode) : ?string {
-        return (
-            new BoardQuery(
-                $arrival_mode
-                , $location
-                , []
-                , []
-                , Date::fromDateTimeInterface($timestamp->sub(new DateInterval($arrival_mode ? 'PT4H30M' : 'P0D')))
-                , null
-                , $timestamp
-                , $this->portion->toc
-                , $this->permanentOnly
-            )
+    private function getBoardLink(DateTimeImmutable $timestamp, Location $location, TimeType $time_type) : ?string {
+        return new BoardQuery(
+            $time_type
+            , $location
+            , []
+            , []
+            , Date::fromDateTimeInterface($timestamp->sub(new DateInterval($time_type->isArrival() ? 'PT4H30M' : 'P0D')))
+            , null
+            , $timestamp
+            , $this->portion->toc
+            , $this->permanentOnly
         )->getUrl($this->fromViewMode->getUrl());
     }
 

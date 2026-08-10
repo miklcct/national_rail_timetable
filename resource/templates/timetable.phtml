@@ -57,9 +57,9 @@ foreach ($this->boards as $board) {
 ?>
         <section>
             <h2>Trains
-                <?= $this->query->arrivalMode && $destinations ? ' from ' . html(implode(', ', array_map(static fn(Location $location) => $location->getShortName(), $destinations))) : '' ?>
+                <?= $this->query->timeType->isArrival() && $destinations ? ' from ' . html(implode(', ', array_map(static fn(Location $location) => $location->getShortName(), $destinations))) : '' ?>
                 <?= $via ? ' via ' . html($via->getShortName()) : '' ?>
-                <?= !$this->query->arrivalMode && $destinations ? ' towards ' . html(implode(', ', array_map(static fn(Location $location) => $location->getShortName(), $destinations))) : '' ?>
+                <?= !$this->query->timeType->isArrival() && $destinations ? ' towards ' . html(implode(', ', array_map(static fn(Location $location) => $location->getShortName(), $destinations))) : '' ?>
             </h2>
             <div class="container">
                 <!--suppress Annotator, Annotator -->
@@ -73,7 +73,7 @@ foreach ($this->boards as $board) {
         $call = $calls[0][$i];
         $colspan = get_colspan($calls[0], $i);
 ?>
-                            <th class="<?= get_header_classes($call) . ' service' ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->getTimestamp($this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE)->getTimestamp()) ?>">
+                            <th class="<?= get_header_classes($call) . ' service' ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->getTimestamp($this->query->timeType)->getTimestamp()) ?>">
                                 <?= show_toc($call->service->toc) ?>
                             </th>
 <?php
@@ -89,7 +89,7 @@ foreach ($this->boards as $board) {
         $call = $calls[0][$i];
         $colspan = get_colspan($calls[0], $i);
 ?>
-                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->getTimestamp($this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE)->getTimestamp()) ?>">
+                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?> data-timestamp="<?= html($calls[0][$i]->getTimestamp($this->query->timeType)->getTimestamp()) ?>">
                                 <?= show_short_term_planning($call) ?>
                             </td>
 <?php
@@ -131,7 +131,7 @@ foreach ($this->boards as $board) {
     $i = 0;
     while (isset($calls[0][$i])) {
         $call = $calls[0][$i];
-        if ($this->query->arrivalMode) {
+        if ($this->query->timeType->isArrival()) {
             foreach ($call->service->getOriginPortions() as $origin) {
                 $location = array_first($origin->timingPoints)->location;
 ?>
@@ -164,7 +164,7 @@ foreach ($this->boards as $board) {
     $i = 0;
     while (isset($calls[0][$i])) {
         $call = $calls[0][$i];
-        if (!$this->query->arrivalMode) {
+        if (!$this->query->timeType->isArrival()) {
             foreach ($call->service->getDestinationPortions() as $destination) {
                 $location = array_last($destination->timingPoints)->location;
 ?>
@@ -225,20 +225,20 @@ foreach ($this->boards as $board) {
         </tr>
 <?php
     };
-    if (!$this->query->arrivalMode) {
+    if (!$this->query->timeType->isArrival()) {
         $show_platforms();
     }
 ?>
 <?php
     foreach (array_keys($shown_stations) as $row_number => $i) {
         $station = $stations[$i];
-        if ($i === 0 && $this->query->arrivalMode) {
+        if ($i === 0 && $this->query->timeType->isArrival()) {
 ?>
                     </thead>
                     <tfoot>
 <?php
         } elseif ($row_number === 1) {
-            if ($this->query->arrivalMode) {
+            if ($this->query->timeType->isArrival()) {
                 $show_platforms();
 ?>
                     </tfoot>
@@ -261,7 +261,7 @@ foreach ($this->boards as $board) {
 <?php
         if ($i !== 0) {
 ?>
-                                        <a href="<?= html(new BoardQuery($this->query->arrivalMode, $this->query->station, [$station], $this->query->inverseFilter, $this->query->date, $this->query->toc, $this->query->connectingTime, $this->query->connectingToc, $this->query->permanentOnly)->getUrl(
+                                        <a href="<?= html(new BoardQuery($this->query->timeType, $this->query->station, [$station], $this->query->inverseFilter, $this->query->date, $this->query->toc, $this->query->connectingTime, $this->query->connectingToc, $this->query->permanentOnly)->getUrl(
                                             TimetableController::URL
                                         )) ?>">
 <?php
@@ -274,7 +274,7 @@ foreach ($this->boards as $board) {
                                         </a>
 <?php
         }
-        $is_arrival = $this->query->arrivalMode === ($i === 0);
+        $is_arrival = $this->query->timeType->isArrival() === ($i === 0);
 ?>
                                     </span>
                                     <abbr class="departure_arrival" title="<?= html($is_arrival ? 'arrival' : 'departure') ?>"><?= html($is_arrival ? 'a' : 'd') ?></abbr>
@@ -286,7 +286,7 @@ foreach ($this->boards as $board) {
             $colspan = isset($calls[$i][$j]) ? get_colspan($calls[$i], $j) : 1;
             $connection_class =
                 $this->query->connectingTime !== null
-                ? array_reduce(range($j, $j + $colspan - 1), fn($carry, $item) => $carry || $calls[0][$item]->isValidConnection($this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE, $this->query->connectingTime, $this->query->connectingToc), false)
+                ? array_reduce(range($j, $j + $colspan - 1), fn($carry, $item) => $carry || $calls[0][$item]->isValidConnection($this->query->timeType, $this->query->connectingTime, $this->query->connectingToc), false)
                     ? 'valid_connection'
                     : 'invalid_connection'
                 : '';
@@ -314,7 +314,7 @@ foreach ($this->boards as $board) {
                     ? ServiceView::getServiceUrl($call->service->uid, $call->service->date, $this->query->permanentOnly, ViewMode::TIMETABLE)
                     : get_arrival_link(TimetableController::URL, $calls[$i][$j], $this->query);
 ?>
-                           <td class="<?= $connection_class ?>" colspan=<?= $colspan ?>><?= show_time($call->getTimestamp($this->query->arrivalMode === (bool)$i ? TimeType::PUBLIC_DEPARTURE : TimeType::PUBLIC_ARRIVAL), $this->date, $link) . show_activities($call->timingPoint->activities) ?></td>
+                           <td class="<?= $connection_class ?>" colspan=<?= $colspan ?>><?= show_time($call->getTimestamp($i ? $this->query->timeType->getCompanion() : $this->query->timeType), $this->date, $link) . show_activities($call->timingPoint->activities) ?></td>
 <?php
                 $j += $colspan;
             }

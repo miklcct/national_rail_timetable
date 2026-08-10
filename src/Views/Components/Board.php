@@ -26,8 +26,8 @@ class Board extends PhpTemplate {
     }
 
     protected function getDayOffsetLink(int $days) : string {
-        return (new BoardQuery(
-            $this->query->arrivalMode
+        return new BoardQuery(
+            $this->query->timeType
             , $this->query->station
             , $this->query->filter
             , $this->query->inverseFilter
@@ -36,7 +36,7 @@ class Board extends PhpTemplate {
             , $this->query->connectingTime
             , $this->query->connectingToc
             , $this->query->permanentOnly
-        ))->getUrl(BoardController::URL);
+        )->getUrl(BoardController::URL);
     }
 
 }

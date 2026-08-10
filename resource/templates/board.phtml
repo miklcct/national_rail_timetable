@@ -1,12 +1,10 @@
 <?php
 declare(strict_types = 1);
-
+    
 use Miklcct\NationalRailTimetable\Controllers\BoardController;
-use Miklcct\NationalRailTimetable\Models\PhysicalStation;
 use Miklcct\NationalRailTimetable\Views\Components\Board;
 use Miklcct\NationalRailTimetable\Views\ServiceView;
 use Miklcct\NationalRailTimetable\Views\ViewMode;
-use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Location;
 use Miklcct\RailOpenTimetableData\Models\ServiceCall;
 use function Miklcct\NationalRailTimetable\Views\get_arrival_link;
@@ -28,7 +26,7 @@ $station = $query->station;
 <table>
     <thead>
 <?php
-if ($query->arrivalMode) {
+if ($query->timeType->isArrival()) {
 ?>
         <tr><th colspan="8"><a href="<?= $this->getDayOffsetLink(1) ?>">Next day</a></th></tr>
 <?php
@@ -45,13 +43,13 @@ if ($query->arrivalMode) {
             <th>Pl.</th>
             <th>TOC</th>
             <th>Train no.</th>
-            <th><?= $query->arrivalMode ? 'Origin' : 'Destination' ?></th>
+            <th><?= $query->timeType->isArrival() ? 'Origin' : 'Destination' ?></th>
             <th>Calling at</th>
         </tr>
     </thead>
     <tfoot>
 <?php
-if ($query->arrivalMode) {
+if ($query->timeType->isArrival()) {
 ?>
         <tr><th colspan="8"><a href="<?= $this->getDayOffsetLink(-1) ?>">Previous day</a></th></tr>
 <?php
@@ -68,9 +66,9 @@ $previous_timestamp = null;
 /**
  * @var ServiceCall $service_call
  */
-foreach ($query->arrivalMode ? array_reverse($this->board->calls, true) : $this->board->calls as $h => $service_call) {
-    $timestamp = $service_call->getTimestamp($query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE);
-    $destinations = $query->arrivalMode ? $service_call->service->getOriginPortions() : $service_call->service->getDestinationPortions();
+foreach ($query->timeType->isArrival() ? array_reverse($this->board->calls, true) : $this->board->calls as $h => $service_call) {
+    $timestamp = $service_call->getTimestamp($query->timeType);
+    $destinations = $query->timeType->isArrival() ? $service_call->service->getOriginPortions() : $service_call->service->getDestinationPortions();
     $portions_count = count($destinations);
     $portion_uids = array_keys($destinations);
     $overtaken_portions = array_combine(
@@ -91,9 +89,9 @@ foreach ($query->arrivalMode ? array_reverse($this->board->calls, true) : $this-
         <tr class="<?= implode(' ', [$h % 2 ? 'odd' : 'even', get_header_classes($service_call)]) ?>" data-timestamp="<?= html($timestamp->getTimestamp()) ?>">
             <td class="<?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>"><?= show_short_term_planning($service_call) ?></td>
             <td class="time <?=
-            $query->connectingTime === null || !$station instanceof PhysicalStation
+            $query->connectingTime === null
                 ? ''
-                : ($service_call->isValidConnection($query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE, $query->connectingTime, $this->connectingToc ?? null) ? 'valid_connection' : 'invalid_connection')
+                : ($service_call->isValidConnection($query->timeType, $query->connectingTime, $this->connectingToc ?? null) ? 'valid_connection' : 'invalid_connection')
             ?> <?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>">
                 <?=
                 show_time($timestamp, $this->date, ServiceView::getServiceUrl($service_call->service->uid, $service_call->service->date, $query->permanentOnly, ViewMode::BOARD))
@@ -113,7 +111,7 @@ foreach ($query->arrivalMode ? array_reverse($this->board->calls, true) : $this-
 <?php
         }
 ?>
-            <td class="destination <?= $overtaken_portions[$uid] ? 'overtaken' : '' ?>"><?= html(($query->arrivalMode ? array_first($destinations[$uid]->timingPoints) : array_last($destinations[$uid]->timingPoints))->location->getShortName()) ?></td>
+            <td class="destination <?= $overtaken_portions[$uid] ? 'overtaken' : '' ?>"><?= html(($query->timeType->isArrival() ? array_first($destinations[$uid]->timingPoints) : array_last($destinations[$uid]->timingPoints))->location->getShortName()) ?></td>
             <td class="calls <?= $overtaken_portions[$uid] ? 'overtaken' : '' ?>"><?=
                 implode(
                     ', '
@@ -127,14 +125,14 @@ foreach ($query->arrivalMode ? array_reverse($this->board->calls, true) : $this-
                                 , $station instanceof Location && in_array($station->getCrsOrTiplocCode(), array_map(static fn(Location $destination) => $destination->getCrsOrTiplocCode(), $this->query->filter), true) ? 'destination' : ''
                                 , html($link)
                                 , html($station->getShortName())
-                                , show_time($service_call->getTimestamp($query->arrivalMode ? TimeType::PUBLIC_DEPARTURE : TimeType::PUBLIC_ARRIVAL), $this->date) . show_activities($service_call->timingPoint->activities)
+                                , show_time($service_call->getTimestamp($query->timeType), $this->date) . show_activities($service_call->timingPoint->activities)
                             );
                         }
                         , array_filter(
-                            $query->arrivalMode ? $service_call->getPrecedingCalls(true) : $service_call->getSubsequentCalls(true)
+                            $query->timeType->isArrival() ? $service_call->getPrecedingCalls(true) : $service_call->getSubsequentCalls(true)
                             , fn(ServiceCall $service_call) : bool => array_key_exists(
                                 $uid,
-                                $this->query->arrivalMode ? $service_call->service->getOriginPortions() : $service_call->service->getDestinationPortions()
+                                $query->timeType->isArrival() ? $service_call->service->getOriginPortions() : $service_call->service->getDestinationPortions()
                             )
                         )
                     )

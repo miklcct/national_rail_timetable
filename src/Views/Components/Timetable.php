@@ -54,7 +54,7 @@ class Timetable extends PhpTemplate {
                 || array_filter(
                     $timetable->stations
                     , fn(Location $other_station, int $other_key) =>
-                        ($this->query->arrivalMode ? $other_key < $key : $other_key > $key)
+                        ($this->query->timeType->isArrival() ? $other_key < $key : $other_key > $key)
                         && in_array($other_station->getCrsOrTiplocCode(), $filter_crs, true)
                         && array_filter(
                             $timetable->calls[$key]

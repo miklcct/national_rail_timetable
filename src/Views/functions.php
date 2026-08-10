@@ -11,7 +11,6 @@ use Miklcct\RailOpenTimetableData\Enums\Catering;
 use Miklcct\RailOpenTimetableData\Enums\Mode;
 use Miklcct\RailOpenTimetableData\Enums\Reservation;
 use Miklcct\RailOpenTimetableData\Enums\ShortTermPlanning;
-use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\RailOpenTimetableData\Models\ServiceCall;
 use Miklcct\RailOpenTimetableData\Models\ServiceProperty;
@@ -117,25 +116,21 @@ function show_facilities(Mode $mode, ServiceProperty $service_property) : string
 
 function get_arrival_link(string $url, ServiceCall $service_call, BoardQuery $query) : ?string {
     $location = $service_call->timingPoint->location;
-    $timestamp = $service_call->getTimestamp(
-        $query->arrivalMode ? TimeType::PUBLIC_DEPARTURE : TimeType::PUBLIC_ARRIVAL
-    );
-    return (
-        new BoardQuery(
-            $query->arrivalMode
-            , $location
-            , []
-            , []
-            , Date::fromDateTimeInterface(
-                $timestamp->sub(
-                    new DateInterval($query->arrivalMode ? 'PT4H30M' : 'P0D')
-                )
+    $timestamp = $service_call->getTimestamp($query->timeType->getCompanion());
+    return new BoardQuery(
+        $query->timeType
+        , $location
+        , []
+        , []
+        , Date::fromDateTimeInterface(
+            $timestamp->sub(
+                new DateInterval($query->timeType->isArrival() ? 'PT4H30M' : 'P0D')
             )
-            , null
-            , $timestamp
-            , $service_call->service->toc
-            , $query->permanentOnly
         )
+        , null
+        , $timestamp
+        , $service_call->service->toc
+        , $query->permanentOnly
     )->getUrl($url);
 }
 
@@ -175,5 +170,5 @@ function get_header_classes(ServiceCall $call) {
 }
 
 function get_service_property(ServiceCall $call, BoardQuery $query) : ServiceProperty {
-    return $call->service->timingPoints[$call->callIndex + ($query->arrivalMode ? -1 : 0)]->serviceProperty;
+    return $call->service->timingPoints[$call->callIndex + ($query->timeType->isArrival() ? -1 : 0)]->serviceProperty;
 }

@@ -48,11 +48,11 @@ class ScheduleView extends PhpTemplate {
     protected function getTitle() : string {
         return sprintf(
             '%s %s at %s %s %s %s%s - %s'
-            , $this->query->arrivalMode ? 'Arrivals' : 'Departures'
+            , $this->query->timeType->isArrival() ? 'Arrivals' : 'Departures'
             , strtolower($this->getViewMode()->name)
             , $this->query->station->name ?? ''
             , $this->query->filter !== []
-                ? ($this->query->arrivalMode ? 'from ' : 'to ') . implode(
+                ? ($this->query->timeType->isArrival() ? 'from ' : 'to ') . implode(
                     ', '
                     , array_map(static fn(Location $location) => $location->name, $this->query->filter)
                 )
@@ -76,7 +76,7 @@ class ScheduleView extends PhpTemplate {
         $inverse_filter = $this->query->inverseFilter;
         return sprintf(
             '<div class="heading"><h1>%s %s at %s %s</h1><p>%s %s</p></div>'
-            , $this->query->arrivalMode ? 'Arrivals' : 'Departures'
+            , $this->query->timeType->isArrival() ? 'Arrivals' : 'Departures'
             , strtolower($this->getViewMode()->name)
             , html($location->name)
             , ' on ' . $this->date
@@ -102,7 +102,7 @@ class ScheduleView extends PhpTemplate {
             throw new LogicException('Reversing is only allowed when filter count is exactly 1.');
         }
         return (new BoardQuery(
-            $this->query->arrivalMode
+            $this->query->timeType
             , $this->query->filter[0]
             , [$this->query->station]
             , $this->query->inverseFilter

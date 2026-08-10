@@ -6,6 +6,7 @@ namespace Miklcct\NationalRailTimetable\Controllers;
 use DateInterval;
 use DateTimeImmutable;
 use Miklcct\NationalRailTimetable\Exceptions\StationNotFound;
+use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Date;
 use Miklcct\RailOpenTimetableData\Models\Location;
 use Miklcct\RailOpenTimetableData\Models\Station;
@@ -13,7 +14,7 @@ use Miklcct\RailOpenTimetableData\Repositories\LocationRepositoryInterface;
 use function array_filter;
 use function array_map;
 
-class BoardQuery {
+readonly class BoardQuery {
     /**
      * @param bool $arrivalMode
      * @param Location|null $station
@@ -27,21 +28,21 @@ class BoardQuery {
      * @param array $otherQueryArguments
      */
     final public function __construct(
-        public readonly bool $arrivalMode = false
-        , public readonly ?Location $station = null
-        , public readonly array $filter = []
-        , public readonly array $inverseFilter = []
-        , public readonly ?Date $date = null
-        , public readonly ?array $toc = null
-        , public readonly ?DateTimeImmutable $connectingTime = null
-        , public readonly ?string $connectingToc = null
-        , public readonly bool $permanentOnly = false
-        , public readonly array $otherQueryArguments = []
+        public TimeType $timeType = TimeType::PUBLIC_DEPARTURE
+        , public ?Location $station = null
+        , public array $filter = []
+        , public array $inverseFilter = []
+        , public ?Date $date = null
+        , public ?array $toc = null
+        , public ?DateTimeImmutable $connectingTime = null
+        , public ?string $connectingToc = null
+        , public bool $permanentOnly = false
+        , public array $otherQueryArguments = []
     ) {}
 
     public static function fromArray(array $query, LocationRepositoryInterface $location_repository) : static {
         return new static(
-            ($query['mode'] ?? '') === 'arrivals'
+            TimeType::tryFrom($query['time_type'] ?? '') ?? (($query['mode'] ?? '') === 'arrivals' ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE)
             , empty($query['station']) ? null : static::getQueryStation($query['station'], $location_repository)
             , array_map(
                 static fn(string $string) => static::getQueryStation($string, $location_repository)
@@ -56,7 +57,7 @@ class BoardQuery {
             , empty($query['connecting_time']) ? null : new \Safe\DateTimeImmutable($query['connecting_time'])
             , $query['connecting_toc'] ?? '' ?: null
             , !empty($query['permanent_only'])
-            , array_diff_key($query, ['mode', 'station', 'filter', 'inverse_filter', 'date', 'toc', 'connecting_time', 'connecting_toc', 'permanent_only'])
+            , array_diff_key($query, ['mode', 'station', 'filter', 'inverse_filter', 'date', 'toc', 'connecting_time', 'connecting_toc', 'permanent_only', 'time_type'])
         );
     }
 
@@ -72,7 +73,6 @@ class BoardQuery {
         };
         return $filter(
             [
-                'mode' => $this->arrivalMode ? 'arrivals' : '',
                 'station' => $this->station?->getCrsOrTiplocCode(),
                 'filter' => array_map(
                     static fn(Location $location) => $location->getCrsOrTiplocCode()
@@ -86,7 +86,10 @@ class BoardQuery {
                 'toc' => $this->toc,
                 'connecting_time' => substr($this->connectingTime?->format('c') ?? '', 0, 16),
                 'connecting_toc' => $this->connectingTime === null ? '' : $this->connectingToc ?? '',
-            ] + ($this->permanentOnly ? ['permanent_only' => '1'] : []) + $this->otherQueryArguments
+            ] 
+            + ($this->permanentOnly ? ['permanent_only' => '1'] : [])
+            + ($this->timeType === TimeType::PUBLIC_DEPARTURE ? [] : ['time_type' => $this->timeType->value])
+            + $this->otherQueryArguments
         );
     }
 
@@ -107,7 +110,7 @@ class BoardQuery {
 
     public function getFixedLinkDepartureTime() : ?DateTimeImmutable {
         return isset($this->connectingTime) && $this->station instanceof Station
-            ? $this->arrivalMode
+            ? $this->timeType->isArrival()
                 ? $this->connectingTime->sub(
                     new DateInterval(sprintf('PT%dM', $this->station->minimumConnectionTime))
                 )

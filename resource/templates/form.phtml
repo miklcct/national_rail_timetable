@@ -1,6 +1,7 @@
 <?php
 declare(strict_types = 1);
 
+use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Station;
 use Miklcct\NationalRailTimetable\Views\Components\Form;
 use Miklcct\NationalRailTimetable\Views\ViewMode;
@@ -43,11 +44,11 @@ foreach ($this->stations as $station) {
     <p>
         Show
 <?php
-foreach (['departures', 'arrivals'] as $mode) {
+foreach ([TimeType::PUBLIC_DEPARTURE, TimeType::PUBLIC_ARRIVAL, TimeType::WORKING_DEPARTURE, TimeType::WORKING_ARRIVAL] as $time_type) {
 ?>
         <label>
-            <input type="radio" name="mode" value="<?= html($mode) ?>" <?= ($query['mode'] ?? 'departures') === $mode ? 'checked = "checked"' : ''?>/>
-            <?= html($mode) ?>
+            <input type="radio" name="time_type" value="<?= html($time_type->value) ?>" <?= ($query['time_type'] ?? TimeType::PUBLIC_DEPARTURE->value) === $time_type->value ? 'checked = "checked"' : ''?>/>
+            <?= html(ucfirst(strtolower(str_replace('_', ' ', $time_type->name)))) ?>
         </label>
 <?php
 }

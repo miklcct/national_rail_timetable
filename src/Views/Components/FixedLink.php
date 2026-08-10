@@ -34,24 +34,22 @@ class FixedLink extends PhpTemplate {
     }
 
     protected function getUrl(Model $fixed_link, ?DateTimeImmutable $departure_time) : string {
-        return (
-        new BoardQuery(
-            $this->query->arrivalMode
-            , $this->query->arrivalMode ? $fixed_link->origin : $fixed_link->destination
+        return new BoardQuery(
+            $this->query->timeType
+            , $this->query->timeType->isArrival() ? $fixed_link->origin : $fixed_link->destination
             , []
             , []
             , $this->query->connectingTime !== null
                 ? Date::fromDateTimeInterface(
-                    $this->query->connectingTime->sub(new DateInterval($this->query->arrivalMode ? 'PT4H30M' : 'P0D'))
+                    $this->query->connectingTime->sub(new DateInterval($this->query->timeType->isArrival() ? 'PT4H30M' : 'P0D'))
                 )
                 : $this->query->date ?? Date::today()
             , null
             , $departure_time === null
                 ? null
-                : $fixed_link->getArrivalTime($departure_time, $this->query->arrivalMode)
+                : $fixed_link->getArrivalTime($departure_time, $this->query->timeType->isArrival())
             , null
             , $this->query->permanentOnly
-        )
         )->getUrl($this->baseUrl);
     }
 }

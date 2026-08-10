@@ -97,7 +97,7 @@ abstract class ScheduleController extends Application {
         if ($updated !== null && $from->getTimestamp() < $updated->toDateTimeImmutable()->getTimestamp()) {
             throw new HttpException('The timetable in the past is no longer available.', Http::GONE);
         }
-        $time_type = $this->query->arrivalMode ? TimeType::PUBLIC_ARRIVAL : TimeType::PUBLIC_DEPARTURE;
+        $time_type = $this->query->timeType;
         $station = $this->query->station;
 
         $cache_key = sprintf(
@@ -143,7 +143,7 @@ abstract class ScheduleController extends Application {
         /** @var FixedLink[] $fixed_links */
         $fixed_links = [];
         $fixed_link_departure_time = $this->query->getFixedLinkDepartureTime();
-        $arrival_mode = $this->query->arrivalMode;
+        $arrival_mode = $this->query->timeType->isArrival();
         $destinations = $this->query->filter;
         $date = $this->query->date ?? Date::today();
         foreach ($this->repository->getFixedLinkRepository()->get($arrival_mode ? null : $station->crsCode, $arrival_mode ? $station->crsCode : null) as $fixed_link) {
