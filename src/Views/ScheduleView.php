@@ -101,7 +101,7 @@ class ScheduleView extends PhpTemplate {
         if (count($this->query->filter) !== 1) {
             throw new LogicException('Reversing is only allowed when filter count is exactly 1.');
         }
-        return (new BoardQuery(
+        return new BoardQuery(
             $this->query->timeType
             , $this->query->filter[0]
             , [$this->query->station]
@@ -111,7 +111,8 @@ class ScheduleView extends PhpTemplate {
             , null
             , null
             , $this->query->permanentOnly
-        ))->getUrl($this->getUrl());
+            , $this->query->signallingIdPrefixes
+        )->getUrl($this->getUrl());
     }
 
     protected function getViewMode() : ViewMode {

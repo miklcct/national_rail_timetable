@@ -1,3 +1,6 @@
+## [3.2.0] - 2026-08-10
+* Allow filtering by signalling ID prefix for departure boards
+
 ## [3.1.0] - 2026-08-10
 * Adds the option to show the working timetable (including passing times)
 

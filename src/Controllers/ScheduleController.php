@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Miklcct\NationalRailTimetable\Controllers;
 
 use GuzzleHttp\Psr7\Response;
+use InvalidArgumentException;
 use Miklcct\NationalRailTimetable\Config\Config;
 use Miklcct\NationalRailTimetable\Exceptions\AmbiguousStation;
 use Miklcct\NationalRailTimetable\Exceptions\StationNotFound;
@@ -29,6 +30,7 @@ use Psr\SimpleCache\CacheInterface;
 use Teapot\HttpException;
 use Teapot\StatusCode\Http;
 use Teapot\StatusCode\WebDAV;
+use Throwable;
 use function array_map;
 use function in_array;
 use function usort;
@@ -70,7 +72,7 @@ abstract class ScheduleController extends Application {
         $location_repository = $this->repository->getLocationRepository();
         try {
             $this->query = BoardQuery::fromArray($query, $location_repository);
-        } catch (StationNotFound|AmbiguousStation $e) {
+        } catch (StationNotFound|AmbiguousStation|InvalidArgumentException $e) {
             return $this->createEmptyFormResponse($e);
         }
 
@@ -101,20 +103,21 @@ abstract class ScheduleController extends Application {
         $station = $this->query->station;
 
         $cache_key = sprintf(
-            'board_%s_%s_%012d_%012d_%s_%d%s',
+            'board_%s_%s_%012d_%012d_%s_%d%s%s',
             $this->repository->getGeneratedDate(),
             $station->getCrsOrTiplocCode(),
             $from->getTimestamp(),
             $to->getTimestamp(),
             $time_type->value,
             $this->query->permanentOnly,
-            $this->query->toc === null ? "" : "_" . implode("", $this->query->toc)
+            $this->query->toc === null ? "" : "_" . implode("", $this->query->toc),
+            $this->query->signallingIdPrefixes === null ? "" : ":" . implode("", $this->query->signallingIdPrefixes)
         );
         $cache_entry = $this->cache?->get($cache_key);
         if ($cache_entry !== null) {
             $board = $cache_entry;
         } else {
-            $board = $service_repository->getDepartureBoard($station, $from, $to, $time_type, $this->query->toc);
+            $board = $service_repository->getDepartureBoard($station, $from, $to, $time_type, $this->query->toc, $this->query->signallingIdPrefixes);
             $this->cache?->set($cache_key, $board);
         }
         $board = $board->filterByDestination($this->query->filter, $this->query->inverseFilter);
@@ -189,7 +192,7 @@ abstract class ScheduleController extends Application {
         return $fixed_links;
     }
 
-    private function createEmptyFormResponse(?StationNotFound $e) : ResponseInterface {
+    private function createEmptyFormResponse(?Throwable $e) : ResponseInterface {
         return ($this->viewResponseFactory)(
             new ScheduleFormView(
                 $this->streamFactory

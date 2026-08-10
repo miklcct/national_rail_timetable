@@ -5,6 +5,7 @@ namespace Miklcct\NationalRailTimetable\Controllers;
 
 use DateInterval;
 use DateTimeImmutable;
+use InvalidArgumentException;
 use Miklcct\NationalRailTimetable\Exceptions\StationNotFound;
 use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Date;
@@ -15,6 +16,8 @@ use function array_filter;
 use function array_map;
 
 readonly class BoardQuery {
+    public ?array $signallingIdPrefixes;
+
     /**
      * @param bool $arrivalMode
      * @param Location|null $station
@@ -37,8 +40,23 @@ readonly class BoardQuery {
         , public ?DateTimeImmutable $connectingTime = null
         , public ?string $connectingToc = null
         , public bool $permanentOnly = false
+        , ?array $signallingIdPrefixes = null
         , public array $otherQueryArguments = []
-    ) {}
+    ) {
+        if ($signallingIdPrefixes !== null) {
+            foreach ($signallingIdPrefixes as &$prefix) {
+                $prefix = strtoupper($prefix);
+                if (!\Safe\preg_match('/^[0-9][A-Z]$/', $prefix)) {
+                    throw new InvalidArgumentException(
+                        "The signalling ID prefix must be a number followed by a letter."
+                    );
+                }
+            }
+        }
+        unset($prefix);
+        $this->signallingIdPrefixes = $signallingIdPrefixes;
+
+    }
 
     public static function fromArray(array $query, LocationRepositoryInterface $location_repository) : static {
         return new static(
@@ -57,6 +75,7 @@ readonly class BoardQuery {
             , empty($query['connecting_time']) ? null : new \Safe\DateTimeImmutable($query['connecting_time'])
             , $query['connecting_toc'] ?? '' ?: null
             , !empty($query['permanent_only'])
+            , isset($query['prefix']) ? array_filter((array)$query['prefix']) : null
             , array_diff_key($query, [
                 'mode' => null, 
                 'station' => null, 
@@ -68,6 +87,7 @@ readonly class BoardQuery {
                 'connecting_toc' => null, 
                 'permanent_only' => null, 
                 'time_type' => null,
+                'prefix' => null,
             ])
         );
     }
@@ -97,6 +117,7 @@ readonly class BoardQuery {
                 'toc' => $this->toc,
                 'connecting_time' => substr($this->connectingTime?->format('c') ?? '', 0, 16),
                 'connecting_toc' => $this->connectingTime === null ? '' : $this->connectingToc ?? '',
+                'prefix' => $this->signallingIdPrefixes,
             ] 
             + ($this->permanentOnly ? ['permanent_only' => '1'] : [])
             + ($this->timeType === TimeType::PUBLIC_DEPARTURE ? [] : ['time_type' => $this->timeType->value])

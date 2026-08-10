@@ -103,8 +103,20 @@ foreach ($this->boards as $board) {
         $call = $calls[0][$i];
         $colspan = get_colspan($calls[0], $i);
         $i += $colspan;
+        $identity = get_service_property($call, $this->query)->identity;
 ?>
-                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>><?= html(get_service_property($call, $this->query)->identity) ?></td>
+                            <td class="<?= get_header_classes($call) ?>" colspan=<?= $colspan ?>>
+<?php
+        if ($identity) {
+?>
+                                <a href="<?= html(new BoardQuery($this->query->timeType, $this->query->station, $this->query->filter, $this->query->inverseFilter, $this->query->date, $this->query->toc, $this->query->connectingTime, $this->query->connectingToc, $this->query->permanentOnly, [substr($identity, 0, 2)])->getUrl(
+                                        TimetableController::URL
+                                )) ?>"><?= html($identity) ?></a>
+<?php
+        }
+?>
+
+                            </td>
 <?php
     }
 ?>
@@ -259,7 +271,7 @@ foreach ($this->boards as $board) {
 <?php
         if ($i !== 0) {
 ?>
-                                        <a href="<?= html(new BoardQuery($this->query->timeType, $this->query->station, [$station], $this->query->inverseFilter, $this->query->date, $this->query->toc, $this->query->connectingTime, $this->query->connectingToc, $this->query->permanentOnly)->getUrl(
+                                        <a href="<?= html(new BoardQuery($this->query->timeType, $this->query->station, [$station], $this->query->inverseFilter, $this->query->date, $this->query->toc, $this->query->connectingTime, $this->query->connectingToc, $this->query->permanentOnly, $this->query->signallingIdPrefixes)->getUrl(
                                             TimetableController::URL
                                         )) ?>">
 <?php

@@ -80,7 +80,7 @@ for ($i = 0; $i < 5; ++$i) {
                    name="date"
                    value="<?= html($query['date'] ?? null) ?>"
                    min="<?= html((new DateTimeImmutable('today'))->format('Y-m-d')) ?>"
-                   max="<?= html((new DateTimeImmutable('+84 days'))->format('Y-m-d')) ?>"
+                   max="<?= html(new DateTimeImmutable('today +180 days')->format('Y-m-d')) ?>"
             />
         </label><br/>
         <label>for the following TOCs (leave empty for all):
@@ -95,6 +95,15 @@ for ($i = 0; $i < 5; ++$i) {
                 }
                 ?>
             </select>
+        </label><br/>
+        <label>with the following signalling ID prefixes (2 characters):
+            <?php
+            for ($i = 0; $i < 5; ++$i) {
+                ?>
+                <input type="text" name="prefix[]" value="<?= html($query['prefix'][$i] ?? null) ?>" size="2" minlength="2" maxlength="2" pattern="[0-9][A-Za-z]"/>
+                <?php
+            }
+            ?>
         </label>
     </p>
     <p>
@@ -103,8 +112,8 @@ for ($i = 0; $i < 5; ++$i) {
                 type="datetime-local"
                 name="connecting_time"
                 value="<?= html($query['connecting_time'] ?? null) ?>"
-                min="<?= html(substr((new DateTimeImmutable('today'))->format('c'), 0, 16)) ?>"
-                max="<?= html(substr((new DateTimeImmutable('today +85 days'))->format('c'), 0, 16)) ?>"
+                min="<?= html(substr(new DateTimeImmutable('today')->format('c'), 0, 16)) ?>"
+                max="<?= html(substr(new DateTimeImmutable('today +181 days')->format('c'), 0, 16)) ?>"
             />
         </label>
         <label>from TOC:

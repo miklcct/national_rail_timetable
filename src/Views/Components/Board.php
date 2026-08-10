@@ -36,6 +36,7 @@ class Board extends PhpTemplate {
             , $this->query->connectingTime
             , $this->query->connectingToc
             , $this->query->permanentOnly
+            , $this->query->signallingIdPrefixes
         )->getUrl(BoardController::URL);
     }
 
