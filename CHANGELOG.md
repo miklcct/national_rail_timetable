@@ -1,3 +1,6 @@
+## [3.1.0] - 2026-08-10
+* Adds the option to show the working timetable (including passing times)
+
 ## [3.0.1] - 2026-08-06
 * Fix departure board caching when filtering is involved
 

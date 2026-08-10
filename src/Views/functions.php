@@ -11,13 +11,21 @@ use Miklcct\RailOpenTimetableData\Enums\Catering;
 use Miklcct\RailOpenTimetableData\Enums\Mode;
 use Miklcct\RailOpenTimetableData\Enums\Reservation;
 use Miklcct\RailOpenTimetableData\Enums\ShortTermPlanning;
+use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Date;
+use Miklcct\RailOpenTimetableData\Models\Points\PassingPoint;
 use Miklcct\RailOpenTimetableData\Models\ServiceCall;
 use Miklcct\RailOpenTimetableData\Models\ServiceProperty;
 use function implode;
 use function Miklcct\RailOpenTimetableData\get_all_tocs;
 use function Miklcct\ThinPhpApp\Escaper\html;
 use function Safe\json_decode;
+
+function show_call_time(ServiceCall $call, TimeType $time_type, ?Date $date = null, ?string $link = null) {
+    return show_time($call->getTimestamp($time_type), $date ?? $call->service->date, $link) 
+        . ($call->timingPoint instanceof PassingPoint ? '<abbr class="activity" title="pass">p</abbr>' : '') 
+        . show_activities($call->timingPoint->activities);
+}
 
 function show_time(DateTimeImmutable $timestamp, Date $base, string $link = null) : string {
     $interval = $base->toDateTimeImmutable(null, $timestamp->getTimezone())->diff($timestamp->setTime(0, 0));

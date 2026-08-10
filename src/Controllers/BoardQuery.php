@@ -57,7 +57,18 @@ readonly class BoardQuery {
             , empty($query['connecting_time']) ? null : new \Safe\DateTimeImmutable($query['connecting_time'])
             , $query['connecting_toc'] ?? '' ?: null
             , !empty($query['permanent_only'])
-            , array_diff_key($query, ['mode', 'station', 'filter', 'inverse_filter', 'date', 'toc', 'connecting_time', 'connecting_toc', 'permanent_only', 'time_type'])
+            , array_diff_key($query, [
+                'mode' => null, 
+                'station' => null, 
+                'filter' => null, 
+                'inverse_filter' => null, 
+                'date' => null, 
+                'toc' => null, 
+                'connecting_time' => null, 
+                'connecting_toc' => null, 
+                'permanent_only' => null, 
+                'time_type' => null,
+            ])
         );
     }
 

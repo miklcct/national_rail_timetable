@@ -8,16 +8,14 @@ use Miklcct\NationalRailTimetable\Views\ServiceView;
 use Miklcct\NationalRailTimetable\Views\ViewMode;
 use Miklcct\RailOpenTimetableData\DomainModels\Timetable;
 use Miklcct\RailOpenTimetableData\Enums\ShortTermPlanning;
-use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Location;
 use Miklcct\RailOpenTimetableData\Models\ServiceCall;
 use function Miklcct\NationalRailTimetable\Views\get_arrival_link;
 use function Miklcct\NationalRailTimetable\Views\get_header_classes;
 use function Miklcct\NationalRailTimetable\Views\get_service_property;
-use function Miklcct\NationalRailTimetable\Views\show_activities;
+use function Miklcct\NationalRailTimetable\Views\show_call_time;
 use function Miklcct\NationalRailTimetable\Views\show_facilities;
 use function Miklcct\NationalRailTimetable\Views\show_short_term_planning;
-use function Miklcct\NationalRailTimetable\Views\show_time;
 use function Miklcct\NationalRailTimetable\Views\show_toc;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
@@ -311,10 +309,10 @@ foreach ($this->boards as $board) {
             } else {
                 $call = $calls[$i][$j];
                 $link = $i === 0
-                    ? ServiceView::getServiceUrl($call->service->uid, $call->service->date, $this->query->permanentOnly, ViewMode::TIMETABLE)
+                    ? ServiceView::getServiceUrl($call->service->uid, $call->service->date, $this->query->permanentOnly, ViewMode::TIMETABLE, !$this->query->timeType->isPublic())
                     : get_arrival_link(TimetableController::URL, $calls[$i][$j], $this->query);
 ?>
-                           <td class="<?= $connection_class ?>" colspan=<?= $colspan ?>><?= show_time($call->getTimestamp($i ? $this->query->timeType->getCompanion() : $this->query->timeType), $this->date, $link) . show_activities($call->timingPoint->activities) ?></td>
+                           <td class="<?= $connection_class ?>" colspan=<?= $colspan ?>><?= show_call_time($call, $i ? $this->query->timeType->getCompanion() : $this->query->timeType, $this->date, $link) ?></td>
 <?php
                 $j += $colspan;
             }

@@ -1,6 +1,6 @@
 <?php
 declare(strict_types = 1);
-    
+
 use Miklcct\NationalRailTimetable\Controllers\BoardController;
 use Miklcct\NationalRailTimetable\Views\Components\Board;
 use Miklcct\NationalRailTimetable\Views\ServiceView;
@@ -10,10 +10,9 @@ use Miklcct\RailOpenTimetableData\Models\ServiceCall;
 use function Miklcct\NationalRailTimetable\Views\get_arrival_link;
 use function Miklcct\NationalRailTimetable\Views\get_header_classes;
 use function Miklcct\NationalRailTimetable\Views\get_service_property;
-use function Miklcct\NationalRailTimetable\Views\show_activities;
+use function Miklcct\NationalRailTimetable\Views\show_call_time;
 use function Miklcct\NationalRailTimetable\Views\show_facilities;
 use function Miklcct\NationalRailTimetable\Views\show_short_term_planning;
-use function Miklcct\NationalRailTimetable\Views\show_time;
 use function Miklcct\NationalRailTimetable\Views\show_toc;
 use function Miklcct\ThinPhpApp\Escaper\html;
 
@@ -94,14 +93,13 @@ foreach ($query->timeType->isArrival() ? array_reverse($this->board->calls, true
                 : ($service_call->isValidConnection($query->timeType, $query->connectingTime, $this->connectingToc ?? null) ? 'valid_connection' : 'invalid_connection')
             ?> <?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>">
                 <?=
-                show_time($timestamp, $this->date, ServiceView::getServiceUrl($service_call->service->uid, $service_call->service->date, $query->permanentOnly, ViewMode::BOARD))
-                . show_activities($service_call->timingPoint->activities)
+                show_call_time($service_call, $query->timeType, $this->date, ServiceView::getServiceUrl($service_call->service->uid, $service_call->service->date, $query->permanentOnly, ViewMode::BOARD, !$this->query->timeType->isPublic()))
                 ?>
             </td>
             <td class="<?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>"><?= show_facilities($service_call->service->mode, get_service_property($service_call, $query)) ?></td>
             <td class="<?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>"><?= html($service_call->timingPoint->platform) ?></td>
             <td class="<?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>"><?= show_toc($service_call->service->toc) ?></td>
-            <td class="<?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>"><a href="<?= html(ServiceView::getServiceUrl($service_call->service->uid, $service_call->service->date, $query->permanentOnly, ViewMode::BOARD)) ?>"><?= html(substr(get_service_property($service_call, $query)->rsid, 2, 4)) ?></a></td>
+            <td class="<?= $whole_train_overtaken ? 'overtaken' : ''?>" rowspan="<?= html($portions_count) ?>"><a href="<?= html(ServiceView::getServiceUrl($service_call->service->uid, $service_call->service->date, $query->permanentOnly, ViewMode::BOARD, !$this->query->timeType->isPublic())) ?>"><?= html(substr(get_service_property($service_call, $query)->rsid, 2, 4)) ?></a></td>
 <?php
     foreach ($portion_uids as $i => $uid) {
         if ($i > 0) {
@@ -125,11 +123,11 @@ foreach ($query->timeType->isArrival() ? array_reverse($this->board->calls, true
                                 , $station instanceof Location && in_array($station->getCrsOrTiplocCode(), array_map(static fn(Location $destination) => $destination->getCrsOrTiplocCode(), $this->query->filter), true) ? 'destination' : ''
                                 , html($link)
                                 , html($station->getShortName())
-                                , show_time($service_call->getTimestamp($query->timeType), $this->date) . show_activities($service_call->timingPoint->activities)
+                                , show_call_time($service_call, $query->timeType->getCompanion(), $this->date)
                             );
                         }
                         , array_filter(
-                            $query->timeType->isArrival() ? $service_call->getPrecedingCalls(true) : $service_call->getSubsequentCalls(true)
+                            $query->timeType->isArrival() ? $service_call->getPrecedingCalls($query->timeType->isPublic()) : $service_call->getSubsequentCalls($query->timeType->isPublic())
                             , fn(ServiceCall $service_call) : bool => array_key_exists(
                                 $uid,
                                 $query->timeType->isArrival() ? $service_call->service->getOriginPortions() : $service_call->service->getDestinationPortions()
