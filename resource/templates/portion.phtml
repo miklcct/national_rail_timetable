@@ -8,6 +8,7 @@ use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Points\HasArrival;
 use Miklcct\RailOpenTimetableData\Models\Points\HasDeparture;
 use Miklcct\RailOpenTimetableData\Models\Points\OriginOrIntermediatePoint;
+use Miklcct\RailOpenTimetableData\Models\Points\PassingPoint;
 use Miklcct\RailOpenTimetableData\Models\Station;
 use function Miklcct\ThinPhpApp\Escaper\html;
 use function Safe\json_encode;
@@ -20,12 +21,12 @@ use function Safe\json_encode;
 $points = $this->portion->timingPoints;
 $service_property = null;
 foreach ($points as $i => $point) {
-    $show_arrival = $i !== 0 && $point instanceof HasArrival && $point->getPublicArrival() !== null;
-    $show_departure = $i !== count($points) - 1 && $point instanceof HasDeparture && $point->getPublicDeparture() !== null;
+    $show_arrival = $point instanceof HasArrival && ($point->getPublicArrival() !== null || $this->wtt) || $this->wtt && $point instanceof PassingPoint;
+    $show_departure = $point instanceof HasDeparture && ($point->getPublicDeparture() !== null || $this->wtt) || $this->wtt && $point instanceof PassingPoint;
 
 
     $easting_northing = (
-        $point->location instanceof Station
+        $point->location instanceof Station && !$point instanceof PassingPoint
         ? sprintf(
             'data-crs="%s" data-name="%s" data-easting="%d" data-northing="%d"',
             html($point->location->crsCode),
@@ -40,40 +41,89 @@ foreach ($points as $i => $point) {
             && $point->serviceProperty !== null && $point->serviceProperty != $service_property) {
         $service_property = $point->serviceProperty;
 
-        if ($show_arrival && $point->isPublicCall()) {
+        if ($show_arrival) {
 ?>
     <tr <?= $easting_northing ?>>
         <td><?= html($point->location->getShortName()) ?></td>
         <td><?= html($point->platform) ?></td>
+<?php
+            if ($this->wtt) {
+?>
+        <td><?= $point->path ?? null ?></td>
+        <td class="time"><?= $point instanceof PassingPoint ? "pass" : $this->showTime($point, TimeType::WORKING_ARRIVAL) ?></td>
+<?php
+            }
+?>
         <td class="time"><?= $this->showTime($point, TimeType::PUBLIC_ARRIVAL) ?></td>
         <td class="time"></td>
+<?php
+            if ($this->wtt) {
+?>
+        <td class="time"></td>
+        <td></td>
+<?php
+            }
+?>
         <td><?= implode('<br/>', array_filter(array_map(
                 static fn(Activity $activity) => $activity->getDescription(), $point->activities))) ?></td>
     </tr>
     
 <?php
         }
-        echo new ServiceInformation($this->getStreamFactory(), $this->portion, $point->serviceProperty);
+        echo new ServiceInformation($this->getStreamFactory(), $this->portion, $point->serviceProperty, $this->wtt);
         
-        if ($show_departure && $point->isPublicCall()) {
+        if ($show_departure) {
 ?>
     <tr <?= $easting_northing ?>>
         <td><?= html($point->location->getShortName()) ?></td>
         <td><?= html($point->platform) ?></td>
+<?php
+        if ($this->wtt) {
+?>
+        <td></td>
+        <td class="time"></td>
+<?php
+        }
+?>
         <td class="time"></td>
         <td class="time"><?= $this->showTime($point, TimeType::PUBLIC_DEPARTURE) ?></td>
+<?php
+        if ($this->wtt) {
+?>
+        <td class="time"><?= $point instanceof PassingPoint ? $this->showTime($point, TimeType::PASS) : $this->showTime($point, TimeType::WORKING_DEPARTURE) ?></td>
+        <td><?= $point->line ?? null ?></td>
+<?php
+        }
+?>
         <td><?= implode('<br/>', array_filter(array_map(
                 static fn(Activity $activity) => $activity->getDescription(), $point->activities))) ?></td>
     </tr>
 <?php
         }
-    } elseif ($point->isPublicCall() && ($show_arrival || $show_departure)) {
+    } elseif ($show_arrival || $show_departure) {
 ?>
     <tr <?= $easting_northing ?>>
         <td><?= html($point->location->getShortName()) ?></td>
         <td><?= html($point->platform) ?></td>
+<?php
+        if ($this->wtt) {
+?>
+        <td><?= $point->path ?? null ?></td>
+        <td class="time"><?= $point instanceof PassingPoint ? "pass" : $this->showTime($point, TimeType::WORKING_ARRIVAL) ?></td>
+<?php
+        }
+?>
+
         <td class="time"><?= $show_arrival ? $this->showTime($point, TimeType::PUBLIC_ARRIVAL) : '' ?></td>
         <td class="time"><?= $show_departure ? $this->showTime($point, TimeType::PUBLIC_DEPARTURE) : '' ?></td>
+<?php
+        if ($this->wtt) {
+?>
+        <td class="time"><?= $show_departure ? $point instanceof PassingPoint ? $this->showTime($point, TimeType::PASS) : $this->showTime($point, TimeType::WORKING_DEPARTURE) : '' ?></td>
+        <td><?= $point->line ?? null ?></td>
+<?php
+        }
+?>
         <td><?= implode('<br/>', array_filter(array_map(
                 static fn(Activity $activity) => $activity->getDescription(), $point->activities))) ?></td>
     </tr>

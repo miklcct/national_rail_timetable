@@ -29,6 +29,7 @@ class Portion extends PhpTemplate {
         , protected readonly Date $dateFromOrigin
         , protected readonly Service $portion
         , protected readonly bool $permanentOnly
+        , protected readonly bool $wtt
         , protected readonly ViewMode $fromViewMode
     ) {
         parent::__construct($streamFactory);

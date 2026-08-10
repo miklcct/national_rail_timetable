@@ -49,6 +49,7 @@ class ServiceController extends Application {
             throw new LogicException('The UID or the RSID but must be specfified.');
         }
         $permanent_only = !empty($query['permanent_only']);
+        $wtt = !empty($query['wtt']);
         $service = null;
         $service_repository = $this->repository->getServiceRepository($permanent_only);
         if ($uid !== null) {
@@ -67,6 +68,7 @@ class ServiceController extends Application {
                 $this->streamFactory
                 , $service
                 , $permanent_only
+                , $wtt
                 , $this->repository->getGeneratedDate()
                 , $query['from'] ?? null === 'board' ? ViewMode::BOARD : ViewMode::TIMETABLE
             )

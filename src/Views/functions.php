@@ -13,7 +13,6 @@ use Miklcct\RailOpenTimetableData\Enums\Reservation;
 use Miklcct\RailOpenTimetableData\Enums\ShortTermPlanning;
 use Miklcct\RailOpenTimetableData\Enums\TimeType;
 use Miklcct\RailOpenTimetableData\Models\Date;
-use Miklcct\RailOpenTimetableData\Models\LocationWithCrs;
 use Miklcct\RailOpenTimetableData\Models\ServiceCall;
 use Miklcct\RailOpenTimetableData\Models\ServiceProperty;
 use function implode;
@@ -25,7 +24,7 @@ function show_time(DateTimeImmutable $timestamp, Date $base, string $link = null
     $interval = $base->toDateTimeImmutable(null, $timestamp->getTimezone())->diff($timestamp->setTime(0, 0));
     $day_offset = $interval->days * ($interval->invert ? -1 : 1);
     $time_string = $timestamp->format('H:i') 
-        . ((int)$timestamp->format('s') > 30 ? '½' : '');
+        . ((int)$timestamp->format('s') >= 30 ? '½' : '');
     /** @noinspection HtmlUnknownTarget */
     return ($link !== null
         ? sprintf('<a href="%s">%s</a>', html($link), html($time_string))

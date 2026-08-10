@@ -18,6 +18,7 @@ class ServiceView extends PhpTemplate {
         StreamFactoryInterface $streamFactory
         , protected readonly Service $service
         , protected readonly bool $permanentOnly
+        , protected readonly bool $wtt
         , protected readonly ?Date $generated
         , protected readonly ViewMode $fromViewMode
     ) {
@@ -31,11 +32,13 @@ class ServiceView extends PhpTemplate {
         , Date $date
         , bool $permanent_only
         , ViewMode $view_mode
+        , bool $wtt = false
     ) : string {
         return rtrim(
             "/service/$uid/$date?" . http_build_query(
                 ($view_mode === ViewMode::BOARD ? ['from' => 'board'] : [])
                 + ($permanent_only ? ['permanent_only' => '1'] : [])
+                + ($wtt ? ['wtt' => '1'] : [])
             )
             , '?'
         );
@@ -56,37 +59,5 @@ class ServiceView extends PhpTemplate {
             , $origin_point->location->getShortName()
             , implode(' and ', array_map(static fn(Service $service) => array_last($service->timingPoints)->location->getShortName(), $this->service->getDestinationPortions()))
         );
-    }
-
-    /**
-     * @param Service[] $portions
-     * @param string $uid_or_rsid
-     * @return Service|null
-     */
-    private static function findPortion(array $portions, string $uid_or_rsid) : ?Service {
-        $result = $portions[$uid_or_rsid] ?? null;
-        if ($result !== null) {
-            return $result;
-        }
-
-        if (Service::isRsid($uid_or_rsid)) {
-            foreach ($portions as $portion) {
-                foreach ($portion->timingPoints as $timingPoint) {
-                    if ($timingPoint instanceof OriginOrIntermediatePoint) {
-                        if ($timingPoint->serviceProperty->rsid === $uid_or_rsid
-                            || strlen($uid_or_rsid) == 6
-                            && substr(
-                                $timingPoint->serviceProperty->rsid,
-                                0,
-                                6
-                            ) === $uid_or_rsid) {
-                            return $portion;
-                        }
-                    }
-                }
-            }
-        }
-
-        return array_first($portions);
     }
 }

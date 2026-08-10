@@ -14,6 +14,7 @@ class ServiceInformation extends PhpTemplate {
         StreamFactoryInterface $streamFactory
         , protected readonly Service $service
         , protected readonly ServiceProperty $serviceProperty
+        , protected readonly bool $wtt
     ) {
         parent::__construct($streamFactory);
     }

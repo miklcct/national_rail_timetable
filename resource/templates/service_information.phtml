@@ -8,7 +8,7 @@ use function Miklcct\ThinPhpApp\Escaper\html;
 /** @var ServiceInformation $this */
 ?>
 <tr>
-    <td colspan="5" class="train_info">
+    <td colspan="9" class="train_info">
         <?=
         implode(
             '<br/>'
@@ -57,5 +57,19 @@ use function Miklcct\ThinPhpApp\Escaper\html;
         ?>
     </td>
 </tr>
-<tr><th>Station</th><th>Pl.</th><th>Arrive</th><th>Depart</th><th>Notes</th></tr>
+<tr>
+    <th>Station</th>
+    <th>Pl.</th>
+<?php if ($this->wtt) { ?>
+    <th>Path</th>
+    <th>WTT Arrive</th>
+<?php } ?>
+    <th>Arrive</th>
+    <th>Depart</th>
+<?php if ($this->wtt) { ?>
+    <th>WTT Depart</th>
+    <th>Line</th>
+<?php } ?>
+    <th>Notes</th>
+</tr>
 
