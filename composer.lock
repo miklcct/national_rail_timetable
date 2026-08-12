@@ -575,16 +575,16 @@
         },
         {
             "name": "miklcct/rail_open_timetable_data",
-            "version": "2.2.0",
+            "version": "2.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/miklcct/rail_open_timetable_data.git",
-                "reference": "43bc707b06b864788ef2e46a88dc3ac48e299deb"
+                "reference": "f5d5fb43b4cca926b7aaa3236d0423fd537f48ec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/miklcct/rail_open_timetable_data/zipball/43bc707b06b864788ef2e46a88dc3ac48e299deb",
-                "reference": "43bc707b06b864788ef2e46a88dc3ac48e299deb",
+                "url": "https://api.github.com/repos/miklcct/rail_open_timetable_data/zipball/f5d5fb43b4cca926b7aaa3236d0423fd537f48ec",
+                "reference": "f5d5fb43b4cca926b7aaa3236d0423fd537f48ec",
                 "shasum": ""
             },
             "require": {
@@ -619,9 +619,9 @@
             "description": "Library for handling rail open timetable data",
             "support": {
                 "issues": "https://github.com/miklcct/rail_open_timetable_data/issues",
-                "source": "https://github.com/miklcct/rail_open_timetable_data/tree/2.2.0"
+                "source": "https://github.com/miklcct/rail_open_timetable_data/tree/2.2.1"
             },
-            "time": "2026-08-10T17:08:18+00:00"
+            "time": "2026-08-12T00:54:47+00:00"
         },
         {
             "name": "miklcct/thin_php_app",
@@ -2474,12 +2474,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "f4f38b8750fb0db0242fb03d4727517e3611da8b"
+                "reference": "402124adeb517a169a63f4b03340d9a0f130bfba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/f4f38b8750fb0db0242fb03d4727517e3611da8b",
-                "reference": "f4f38b8750fb0db0242fb03d4727517e3611da8b",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/402124adeb517a169a63f4b03340d9a0f130bfba",
+                "reference": "402124adeb517a169a63f4b03340d9a0f130bfba",
                 "shasum": ""
             },
             "conflict": {
@@ -3118,6 +3118,7 @@
                 "php-standard-library/h2": ">=6.1,<6.1.2|>=6.2,<6.2.1",
                 "php-standard-library/php-standard-library": ">=6.1,<6.1.2|>=6.2,<6.2.1",
                 "phpbb/phpbb": "<3.3.16|==4.0.0.0-alpha1",
+                "phpcsstandards/phpcsutils": ">=1.0.0.0-alpha1,<1.2.3",
                 "phpems/phpems": ">=6,<=6.1.3",
                 "phpfastcache/phpfastcache": "<6.1.5|>=7,<7.1.2|>=8,<8.0.7",
                 "phpmailer/phpmailer": "<6.5",
@@ -3592,7 +3593,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-07T18:55:46+00:00"
+            "time": "2026-08-11T20:03:09+00:00"
         }
     ],
     "aliases": [],
