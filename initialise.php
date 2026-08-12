@@ -29,11 +29,12 @@ use Whoops\Handler\PlainTextHandler;
 use Whoops\Handler\PrettyPageHandler;
 use Whoops\Run;
 use function DI\autowire;
+use function DI\get;
 
 function get_container() : ContainerInterface {
     static $container;
     if ($container === null) {
-        $container = (new ContainerBuilder())->addDefinitions(
+        $container = new ContainerBuilder()->addDefinitions(
             [
                 Client::class => static function(ContainerInterface $container) : Client {
                     $config = $container->get(Config::class);
@@ -44,8 +45,8 @@ function get_container() : ContainerInterface {
                     static fn() => new Psr16Cache(new PhpFilesAdapter('', 0, __DIR__ . '/var/cache', true)),
                 RepositoryInterface::class =>
                     static fn(ContainerInterface $container) => $container->get(Config::class)->getRepository(),
-                LocationRepositoryInterface::class => autowire(RepositoryInterface::class)->method('getLocationRepository'),
-                FixedLinkRepositoryInterface::class => autowire(RepositoryInterface::class)->method('getFixedLinkRepository'),
+                LocationRepositoryInterface::class => fn (RepositoryInterface $repository) => $repository->getLocationRepository(),
+                FixedLinkRepositoryInterface::class => fn (RepositoryInterface $repository) => $repository->getFixedLinkRepository(),
                 ViewResponseFactoryInterface::class => autowire(ViewResponseFactory::class),
                 ResponseFactoryInterface::class => autowire(ResponseFactory::class),
                 StreamFactoryInterface::class => autowire(StreamFactory::class),
