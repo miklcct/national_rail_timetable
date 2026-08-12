@@ -14,12 +14,12 @@
         <p>
             The home page shows the form below: <br/>
             <img src="/images/help/form.png" alt="Entry form"/><br/>
-            Enter either the full name or the 3-letter CRS code of the station,
-            choose either departures or arrivals,
-            and tap either "Show timetable" or "Show board" button.
+            Enter either the full name, TIPLOC code, or the 3-letter CRS code of 
+            the station, choose either departures or arrivals, and tap either
+            "Show timetable" or "Show board" button.
         </p>
         <p>
-            If Javascript is enabled, a map is shown below where clicking a
+            If JavaScript is enabled, a map is shown below where clicking a
             station will fill in the form input as well. In addition, a
             geolocation button will appear which the use will fill the form
             with the closest station, and sort the station suggestions
@@ -48,12 +48,12 @@
         <p>
             The heading shows the furthest place the trains go. If there is a
             station where all trains in the timetable will call, the heading
-            also shows that as well.
+            also shows that.
         </p>
         <p>
             The table heading shows, for each train, the 2-letter code of the
             Train Operating Company operating the train, the headcode (normally
-            either the train number for a reservable service, or the route code
+            either the train number for a reservable service or the route code
             otherwise), the 3-letter code of the origin and destination, the
             icons of the facilities available, and the platform where the train
             calls at if known.
@@ -66,12 +66,12 @@
             station specified.
         </p>
         <p>
-            If Javascript is enabled, the table is automatically scrolled to the
+            If JavaScript is enabled, the table is automatically scrolled to the
             relevant time, which is the connection time is given, or the time
             now if not.
         </p>
         <p>
-            The letter u, s or x next to a time indicates that the station call
+            The letter u, s, or x next to a time indicates that the station call
             is pick-up only, set-down only, or a request stop.
         </p>
         <p>
@@ -101,7 +101,16 @@
         <p>
             Tapping the departure / arrival time at the station specified links
             to the details of the train, including a map showing where the train
-            runs if Javascript is enabled.
+            runs if JavaScript is enabled.
+        </p>
+        <p>
+            Tapping the arrival / departure times at other stations will go to
+            the timetable of that station, showing connections from the 
+            specified service.
+        </p>
+        <p>
+            Tapping the signalling ID of the train will filter the timetable to
+            only show trains with the same prefix.
         </p>
         <h3>Board view</h3>
         <p>
@@ -118,7 +127,7 @@
             The departure board shows each train in a row, including its
             departure / arrival time at the station specified, the facilities
             available, the platform, the Train Operating Company, the
-            destination / origin of the train, and the subsequent / preceding
+            destination / origin of the train, and the following / preceding
             calls. The connections are also colour-coded as described above
             as well.
         </p>
@@ -132,11 +141,11 @@
         </p>
         <p>
             Tapping a calling station also links to the board of that station
-            as well with the connection time given, same as in the timetable.
+             with the connection time given, same as in the timetable.
         </p>
         <h3>Service detail</h3>
         <p>
-            Tapping the departure / arrival time of the timetable of the board
+            Tapping the departure / arrival time of the timetable or the board
             brings up the service detail page:<br/>
             <img src="/images/help/service_details.png" alt="Service details" />
         </p>
@@ -147,19 +156,19 @@
             available.
         </p>
         <p>
-            It also shows the scheduled passenger calls of the train as well,
+            It also shows the scheduled passenger calls of the train,
             including if it is pick-up only, set-down only, a request stop, or
             if a reversal is made at the station.
         </p>
         <p>
-            Tapping a time links to the departure board (for an arrival time) or
-            the arrival board (for a departure time) for the station, with the
-            time given as the connection time.
+            Tapping a time will go to the departure board (for an arrival time)
+            or the arrival board (for a departure time) for the station, with 
+            the time given as the connection time.
         </p>
         <h2>Advanced usage</h2>
         <h3>Bookmarking a timetable</h3>
         <p>
-            All timetable, board and service details pages are bookmarkable. If
+            All timetable, board, and service details pages are bookmarkable. If
             the date is not specified in the form, the URL generated is always
             for today's timetable or board. Combined with the auto-scrolling,
             the scheduled train times for your favourite station now
