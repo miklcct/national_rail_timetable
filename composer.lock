@@ -575,16 +575,16 @@
         },
         {
             "name": "miklcct/rail_open_timetable_data",
-            "version": "2.2.2",
+            "version": "2.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/miklcct/rail_open_timetable_data.git",
-                "reference": "4e9739d01283b09a31b8b9403812330b0822ba77"
+                "reference": "73b77b758b56f130b7f32201cb89bafc520aa220"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/miklcct/rail_open_timetable_data/zipball/4e9739d01283b09a31b8b9403812330b0822ba77",
-                "reference": "4e9739d01283b09a31b8b9403812330b0822ba77",
+                "url": "https://api.github.com/repos/miklcct/rail_open_timetable_data/zipball/73b77b758b56f130b7f32201cb89bafc520aa220",
+                "reference": "73b77b758b56f130b7f32201cb89bafc520aa220",
                 "shasum": ""
             },
             "require": {
@@ -619,9 +619,9 @@
             "description": "Library for handling rail open timetable data",
             "support": {
                 "issues": "https://github.com/miklcct/rail_open_timetable_data/issues",
-                "source": "https://github.com/miklcct/rail_open_timetable_data/tree/2.2.2"
+                "source": "https://github.com/miklcct/rail_open_timetable_data/tree/2.2.3"
             },
-            "time": "2026-08-17T01:30:45+00:00"
+            "time": "2026-08-17T01:51:17+00:00"
         },
         {
             "name": "miklcct/thin_php_app",
